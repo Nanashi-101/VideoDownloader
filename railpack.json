@@ -1,0 +1,9 @@
+{
+  "packages": ["yt-dlp", "ffmpeg"],
+  "install": {
+    "cmd": "npm install --omit=dev"
+  },
+  "start": {
+    "cmd": "node server.js"
+  }
+}
