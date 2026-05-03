@@ -251,7 +251,7 @@
     /* ── Sidebar backdrop (mobile only) ── */
     .sidebar-backdrop {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.65); z-index: 19;
+      background: rgba(0,0,0,0.7); z-index: 199;
       backdrop-filter: blur(2px);
     }
     .sidebar-backdrop.show { display: block; }
@@ -307,6 +307,9 @@
         transform: translateX(0) !important;
         box-shadow: 8px 0 40px rgba(0,0,0,0.7);
       }
+      /* Show close button on mobile */
+      #sidebarCloseBtn { display: flex !important; }
+
       /* Always show full sidebar content when it's the mobile overlay */
       .sidebar .logo-text,
       .sidebar .nav-text,
@@ -450,6 +453,8 @@
     <div class="sidebar-logo">
       <img src="/logo.png" alt="Viddly" style="height:32px;width:auto;flex-shrink:0"/>
       <span class="logo-text">Viddly</span>
+      <!-- Close button — mobile only -->
+      <button id="sidebarCloseBtn" onclick="closeMobileSidebar()" style="display:none;margin-left:auto;width:30px;height:30px;border-radius:7px;background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--muted);cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;line-height:1" title="Close menu">✕</button>
     </div>
 
     <div class="nav-section">
