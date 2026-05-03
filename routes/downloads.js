@@ -139,10 +139,10 @@ function startDownload(id, url, _userId) {
 
   const args = [
     '--no-playlist','--print-json','--newline',
-    '-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
+    '-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[height<=1080]/best',
     '--merge-output-format','mp4',
-    // Use web clients that don't require PO tokens
-    '--extractor-args','youtube:player_client=web,mweb,web_embedded',
+    // web_embedded doesn't require PO tokens
+    '--extractor-args','youtube:player_client=web_embedded',
     ...(hasCookies ? ['--cookies', cookiesFile] : []),
     '-o', outputTemplate, url
   ];
