@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_20", "yt-dlp", "ffmpeg"]
 
 [phases.install]
-cmds = ["npm ci --omit=dev"]
+cmds = ["npm install --omit=dev"]
 
 [start]
 cmd = "node server.js"
