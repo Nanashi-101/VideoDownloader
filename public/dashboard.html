@@ -247,9 +247,153 @@
     .glow-green  { box-shadow: 0 0 24px rgba(16,185,129,0.2); }
     .glow-blue   { box-shadow: 0 0 24px rgba(59,130,246,0.2); }
     .glow-red    { box-shadow: 0 0 24px rgba(239,68,68,0.2); }
+
+    /* ── Sidebar backdrop (mobile only) ── */
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); z-index: 19;
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-backdrop.show { display: block; }
+
+    /* ── Mobile nav bar (bottom) ── */
+    .mobile-nav {
+      display: none;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-top: 1px solid var(--border);
+      z-index: 50; padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    }
+    .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; }
+    .mobile-nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 6px 12px; border-radius: 10px; background: none; border: none;
+      color: var(--subtle); cursor: pointer; font-size: 0.62rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.15s;
+      text-decoration: none;
+    }
+    .mobile-nav-btn.active { color: #a78bfa; }
+    .mobile-nav-btn svg { width: 20px; height: 20px; }
+
+    /* ═══════════════════════════════════
+       RESPONSIVE BREAKPOINTS
+    ═══════════════════════════════════ */
+
+    /* ── Tablet (≤ 1024px): collapse sidebar by default ── */
+    @media (max-width: 1024px) {
+      #statsGrid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+
+    /* ── Mobile (≤ 768px) ── */
+    @media (max-width: 768px) {
+      html, body { overflow: auto; }
+
+      /* Sidebar becomes a slide-in overlay */
+      .sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0;
+        transform: translateX(-280px); z-index: 20; width: 260px !important;
+        transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+        box-shadow: none;
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+        box-shadow: 8px 0 32px rgba(0,0,0,0.6);
+      }
+      /* When sidebar is open, reset any collapsed state */
+      .sidebar.mobile-open .logo-text,
+      .sidebar.mobile-open .nav-text,
+      .sidebar.mobile-open .nav-label,
+      .sidebar.mobile-open .user-info,
+      .sidebar.mobile-open .logout-icon,
+      .sidebar.mobile-open .nav-badge { opacity: 1 !important; width: auto !important; overflow: visible !important; display: flex !important; }
+      .sidebar.mobile-open .nav-badge { display: inline !important; }
+
+      /* Main takes full width */
+      .main { width: 100%; overflow: auto; }
+
+      /* App no longer locks scroll */
+      .app { height: auto; overflow: visible; }
+
+      /* Topbar adjustments */
+      .topbar { padding: 0 14px; height: 56px; position: sticky; top: 0; z-index: 18; }
+      .topbar-right > div:last-child span#topbarName { display: none; }
+      .topbar-right > div:last-child > svg { display: none; }
+      .breadcrumb { font-size: 0.78rem; }
+
+      /* Content */
+      .content { padding: 14px; padding-bottom: 80px; }
+
+      /* Stats grid: 2×2 */
+      #statsGrid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+
+      /* Download card: stack input + button */
+      #dlCard .dl-row { flex-direction: column !important; }
+      #dlCard .dl-row .btn-primary { width: 100%; justify-content: center; }
+
+      /* Page header: stack title + button */
+      .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+      .page-header > button, .page-header > a { align-self: flex-start; }
+
+      /* Admin stats grid: 2×2 */
+      .admin-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+      /* Table: horizontal scroll is enough */
+      .tbl th:nth-child(3), .tbl td:nth-child(3),
+      .tbl th:nth-child(4), .tbl td:nth-child(4) { display: none; }
+
+      /* Modal: full-screen */
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal-box { border-radius: 20px 20px 0 0; max-width: 100%; }
+      #videoPlayer { max-height: 50vh; }
+
+      /* Toast: full-width at bottom */
+      .toast-wrap { bottom: 72px; right: 10px; left: 10px; }
+      .toast { min-width: 0; width: 100%; }
+
+      /* Confirm modal */
+      #confirmBox { margin: 0 12px; }
+
+      /* Show mobile bottom nav */
+      .mobile-nav { display: block; }
+
+      /* Hide collapse button on mobile (sidebar is toggled differently) */
+      .collapse-btn { display: flex; }
+    }
+
+    /* ── Small mobile (≤ 380px) ── */
+    @media (max-width: 380px) {
+      #statsGrid { grid-template-columns: 1fr 1fr !important; }
+      .stat-value { font-size: 1.35rem; }
+      .content { padding: 10px; padding-bottom: 80px; }
+      .topbar { padding: 0 10px; }
+    }
   </style>
 </head>
 <body>
+
+<!-- ── Sidebar backdrop (mobile) ── -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+<!-- ── Mobile Bottom Nav ── -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mobile-nav-btn active" id="mnavDownloads" onclick="showPage('downloads');closeMobileSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Downloads
+    </button>
+    <button class="mobile-nav-btn" id="mnavHistory" onclick="showPage('history');closeMobileSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+      History
+    </button>
+    <button class="mobile-nav-btn" id="mnavAdmin" onclick="showPage('admin');closeMobileSidebar()" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Admin
+    </button>
+    <button class="mobile-nav-btn" onclick="logout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out
+    </button>
+  </div>
+</nav>
 
 <!-- ── Confirm Modal ── -->
 <div id="confirmOverlay" style="position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,0);backdrop-filter:blur(0px);pointer-events:none;transition:all 0.25s ease">
@@ -383,7 +527,7 @@
       <!-- ══ DOWNLOADS PAGE ══ -->
       <div id="pageDownloads">
         <!-- Page header -->
-        <div style="margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="page-header" style="margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between">
           <div>
             <h1 style="font-size:1.5rem;font-weight:800;color:var(--text)">Downloads</h1>
             <p style="font-size:0.85rem;color:var(--muted);margin-top:3px">Paste any video URL to start downloading</p>
@@ -448,7 +592,7 @@
             <div style="width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399"></div>
             <span style="font-size:0.8rem;font-weight:600;color:var(--muted)">NEW DOWNLOAD</span>
           </div>
-          <div style="display:flex;gap:10px">
+          <div class="dl-row" style="display:flex;gap:10px">
             <div style="position:relative;flex:1;display:flex;align-items:center">
               <svg style="position:absolute;left:14px;color:var(--subtle);flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
               <input class="url-input" id="urlInput" type="url" placeholder="Paste a YouTube, Vimeo, TikTok or any video URL…" style="padding-left:40px"/>
@@ -476,7 +620,7 @@
 
       <!-- ══ HISTORY PAGE ══ -->
       <div id="pageHistory" style="display:none">
-        <div style="margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between">
+        <div class="page-header" style="margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between">
           <div>
             <h1 style="font-size:1.5rem;font-weight:800;color:var(--text)">History</h1>
             <p style="font-size:0.85rem;color:var(--muted);margin-top:3px">All your downloads across all sessions</p>
@@ -496,7 +640,7 @@
         </div>
 
         <!-- Admin stats -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+        <div class="admin-stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
           <div class="card" style="padding:18px"><div class="stat-value" id="adm-users">—</div><div class="stat-label">Total Users</div></div>
           <div class="card" style="padding:18px"><div class="stat-value" id="adm-total">—</div><div class="stat-label">Total Downloads</div></div>
           <div class="card" style="padding:18px"><div class="stat-value" style="color:#34d399" id="adm-done">—</div><div class="stat-label">Completed</div></div>
@@ -585,7 +729,10 @@ async function init() {
   document.getElementById('topbarName').textContent    = name;
   document.getElementById('userRole').textContent      = currentUser.role === 'admin' ? '👑 Admin' : '👤 User';
 
-  if (currentUser.role === 'admin') document.getElementById('navAdmin').style.display = 'flex';
+  if (currentUser.role === 'admin') {
+    document.getElementById('navAdmin').style.display = 'flex';
+    document.getElementById('mnavAdmin').style.display = 'flex';
+  }
 
   loadStats();
   loadRecent();
@@ -608,8 +755,23 @@ function runEntranceAnim() {
 // Sidebar
 // ═══════════════════════════════════════════════════════════════
 function toggleSidebar() {
-  sidebarCollapsed = !sidebarCollapsed;
-  document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+  if (window.innerWidth <= 768) {
+    const sidebar   = document.getElementById('sidebar');
+    const backdrop  = document.getElementById('sidebarBackdrop');
+    const isOpen    = sidebar.classList.contains('mobile-open');
+    sidebar.classList.toggle('mobile-open', !isOpen);
+    backdrop.classList.toggle('show', !isOpen);
+    document.body.style.overflow = isOpen ? '' : 'hidden';
+  } else {
+    sidebarCollapsed = !sidebarCollapsed;
+    document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+  }
+}
+
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -631,6 +793,13 @@ function showPage(name) {
   el.style.display = 'block';
   document.getElementById(nav)?.classList.add('active');
   document.getElementById('breadcrumbCurrent').textContent = label;
+
+  // Sync mobile bottom nav
+  ['mnavDownloads','mnavHistory','mnavAdmin'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active');
+  });
+  const mnavMap = { downloads: 'mnavDownloads', history: 'mnavHistory', admin: 'mnavAdmin' };
+  document.getElementById(mnavMap[name])?.classList.add('active');
 
   gsap.from(el, { y: 12, opacity: 0, duration: 0.3, ease: 'power2.out' });
 
