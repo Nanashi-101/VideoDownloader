@@ -285,42 +285,49 @@
 
     /* ── Mobile (≤ 768px) ── */
     @media (max-width: 768px) {
-      html, body { overflow: auto; }
+      html, body { overflow: auto; height: auto; }
 
-      /* Sidebar becomes a slide-in overlay */
+      /* App: stack vertically, allow natural scroll */
+      .app { display: block; height: auto; overflow: visible; min-height: 100vh; }
+
+      /* Main: take full screen width */
+      .main { width: 100vw; display: flex; flex-direction: column; overflow: visible; }
+
+      /* Sidebar becomes a slide-in overlay — HIDDEN by default */
       .sidebar {
         position: fixed; top: 0; left: 0; bottom: 0;
-        transform: translateX(-280px); z-index: 20; width: 260px !important;
+        width: 260px !important;
+        transform: translateX(-270px);
+        z-index: 200;
         transition: transform 0.3s cubic-bezier(.4,0,.2,1);
         box-shadow: none;
       }
+      /* Open state */
       .sidebar.mobile-open {
-        transform: translateX(0);
-        box-shadow: 8px 0 32px rgba(0,0,0,0.6);
+        transform: translateX(0) !important;
+        box-shadow: 8px 0 40px rgba(0,0,0,0.7);
       }
-      /* When sidebar is open, reset any collapsed state */
-      .sidebar.mobile-open .logo-text,
-      .sidebar.mobile-open .nav-text,
-      .sidebar.mobile-open .nav-label,
-      .sidebar.mobile-open .user-info,
-      .sidebar.mobile-open .logout-icon,
-      .sidebar.mobile-open .nav-badge { opacity: 1 !important; width: auto !important; overflow: visible !important; display: flex !important; }
-      .sidebar.mobile-open .nav-badge { display: inline !important; }
+      /* Always show full sidebar content when it's the mobile overlay */
+      .sidebar .logo-text,
+      .sidebar .nav-text,
+      .sidebar .nav-label,
+      .sidebar .user-info,
+      .sidebar .logout-icon { opacity: 1 !important; width: auto !important; overflow: visible !important; }
+      .sidebar .nav-badge { display: inline !important; }
 
-      /* Main takes full width */
-      .main { width: 100%; overflow: auto; }
-
-      /* App no longer locks scroll */
-      .app { height: auto; overflow: visible; }
-
-      /* Topbar adjustments */
-      .topbar { padding: 0 14px; height: 56px; position: sticky; top: 0; z-index: 18; }
-      .topbar-right > div:last-child span#topbarName { display: none; }
+      /* Topbar */
+      .topbar {
+        padding: 0 14px; height: 56px;
+        position: sticky; top: 0; z-index: 18;
+        width: 100%;
+      }
+      /* Hide the user dropdown name + chevron on mobile to save space */
+      .topbar-right > div:last-child > span { display: none; }
       .topbar-right > div:last-child > svg { display: none; }
       .breadcrumb { font-size: 0.78rem; }
 
       /* Content */
-      .content { padding: 14px; padding-bottom: 80px; }
+      .content { padding: 14px; padding-bottom: 88px; overflow: visible; }
 
       /* Stats grid: 2×2 */
       #statsGrid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
@@ -331,32 +338,29 @@
 
       /* Page header: stack title + button */
       .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-      .page-header > button, .page-header > a { align-self: flex-start; }
+      .page-header > button { align-self: flex-start; }
 
       /* Admin stats grid: 2×2 */
       .admin-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
 
-      /* Table: horizontal scroll is enough */
+      /* Table: hide less-important columns on small screens */
       .tbl th:nth-child(3), .tbl td:nth-child(3),
       .tbl th:nth-child(4), .tbl td:nth-child(4) { display: none; }
 
-      /* Modal: full-screen */
+      /* Modal: bottom sheet style */
       .modal-overlay { padding: 0; align-items: flex-end; }
       .modal-box { border-radius: 20px 20px 0 0; max-width: 100%; }
       #videoPlayer { max-height: 50vh; }
 
-      /* Toast: full-width at bottom */
-      .toast-wrap { bottom: 72px; right: 10px; left: 10px; }
+      /* Toast: full-width near bottom nav */
+      .toast-wrap { bottom: 76px; right: 10px; left: 10px; }
       .toast { min-width: 0; width: 100%; }
 
-      /* Confirm modal */
-      #confirmBox { margin: 0 12px; }
+      /* Confirm modal: keep from hitting edges */
+      #confirmBox { margin: 0 16px; }
 
       /* Show mobile bottom nav */
       .mobile-nav { display: block; }
-
-      /* Hide collapse button on mobile (sidebar is toggled differently) */
-      .collapse-btn { display: flex; }
     }
 
     /* ── Small mobile (≤ 380px) ── */
@@ -744,11 +748,15 @@ async function init() {
 // Entrance animation
 // ═══════════════════════════════════════════════════════════════
 function runEntranceAnim() {
-  gsap.from('.sidebar', { x: -20, opacity: 0, duration: 0.5, ease: 'power3.out' });
-  gsap.from('.topbar',  { y: -10, opacity: 0, duration: 0.4, ease: 'power2.out', delay: 0.1 });
-  gsap.from('#statsGrid > *', { y: 24, opacity: 0, duration: 0.5, stagger: 0.07, ease: 'power3.out', delay: 0.2 });
-  gsap.from('#dlCard',  { y: 16, opacity: 0, duration: 0.45, ease: 'power2.out', delay: 0.45 });
-  gsap.from('#recentContainer', { y: 14, opacity: 0, duration: 0.4, ease: 'power2.out', delay: 0.55 });
+  const isMobile = window.innerWidth <= 768;
+  // Don't animate sidebar on mobile — CSS keeps it off-screen; GSAP would override that
+  if (!isMobile) {
+    gsap.from('.sidebar', { x: -20, opacity: 0, duration: 0.5, ease: 'power3.out' });
+  }
+  gsap.from('.topbar',  { y: -10, opacity: 0, duration: 0.4, ease: 'power2.out', delay: isMobile ? 0 : 0.1 });
+  gsap.from('#statsGrid > *', { y: 24, opacity: 0, duration: 0.5, stagger: 0.07, ease: 'power3.out', delay: isMobile ? 0.1 : 0.2 });
+  gsap.from('#dlCard',  { y: 16, opacity: 0, duration: 0.45, ease: 'power2.out', delay: isMobile ? 0.2 : 0.45 });
+  gsap.from('#recentContainer', { y: 14, opacity: 0, duration: 0.4, ease: 'power2.out', delay: isMobile ? 0.3 : 0.55 });
 }
 
 // ═══════════════════════════════════════════════════════════════
