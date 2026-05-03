@@ -830,7 +830,7 @@ async function loadStats() {
 
   const total  = data.length;
   const done   = data.filter(d => d.status === 'done').length;
-  const active = data.filter(d => d.status === 'downloading' || d.status === 'pending').length;
+  const active = data.filter(d => d.status === 'downloading' || d.status === 'pending' || d.status === 'uploading').length;
   const failed = data.filter(d => d.status === 'failed').length;
 
   animateCount('st-total',  total);
@@ -914,9 +914,9 @@ async function loadHistory() {
 function updateStats(data) {
   animateCount('st-total',  data.length);
   animateCount('st-done',   data.filter(d => d.status === 'done').length);
-  animateCount('st-active', data.filter(d => d.status === 'downloading' || d.status === 'pending').length);
+  animateCount('st-active', data.filter(d => d.status === 'downloading' || d.status === 'pending' || d.status === 'uploading').length);
   animateCount('st-failed', data.filter(d => d.status === 'failed').length);
-  const active = data.filter(d => d.status === 'downloading' || d.status === 'pending').length;
+  const active = data.filter(d => d.status === 'downloading' || d.status === 'pending' || d.status === 'uploading').length;
   const badge = document.getElementById('pendingBadge');
   if (active > 0) { badge.textContent = active; badge.style.display = 'inline'; }
   else badge.style.display = 'none';
@@ -958,6 +958,7 @@ function renderRow(d) {
     done:        `<span class="badge badge-done"><span class="dot dot-done"></span>Done</span>`,
     downloading: `<span class="badge badge-dl"><span class="dot dot-dl"></span>Downloading<div class="progress-wrap" style="width:60px;margin-left:4px"><div class="progress-bar"></div></div></span>`,
     converting:  `<span class="badge" style="background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.25)"><span class="dot" style="background:#c084fc;animation:pulse 1s infinite"></span>Converting<div class="progress-wrap" style="width:50px;margin-left:4px"><div class="progress-bar" style="background:linear-gradient(90deg,#9333ea,#7c3aed)"></div></div></span>`,
+    uploading:   `<span class="badge" style="background:rgba(20,184,166,0.12);color:#2dd4bf;border:1px solid rgba(20,184,166,0.25)"><span class="dot" style="background:#2dd4bf;animation:pulse 1s infinite"></span>Uploading to cloud<div class="progress-wrap" style="width:50px;margin-left:4px"><div class="progress-bar" style="background:linear-gradient(90deg,#0d9488,#2dd4bf)"></div></div></span>`,
     pending:     `<span class="badge badge-pending"><span class="dot dot-pending"></span>Pending</span>`,
     failed:      `<span class="badge badge-failed" title="${escHtml(d.error||'')}"><span class="dot dot-failed"></span>Failed</span>`,
   }[d.status] || `<span class="badge">${d.status}</span>`;
@@ -1077,7 +1078,7 @@ function startPolling() {
     const res = await api('/api/downloads');
     if (!res) return;
     const data = await res.json();
-    const hasActive = data.some(d => d.status === 'pending' || d.status === 'downloading');
+    const hasActive = data.some(d => ['pending','downloading','converting','uploading'].includes(d.status));
     updateStats(data);
     if (document.getElementById('pageDownloads').style.display !== 'none') loadRecent();
     if (document.getElementById('pageHistory').style.display !== 'none') loadHistory();
