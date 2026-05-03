@@ -124,12 +124,32 @@ function startDownload(id, url, _userId) {
   const outputTemplate = path.join(DOWNLOADS_DIR, `${id}_%(title).80s.%(ext)s`);
   dbUpdate(id, null, null, null, null, 'downloading', null, null).catch(console.error);
 
+  // Write YouTube cookies to temp file if provided via env var
+  // Railway may store newlines as literal \n — normalize them
+  const cookiesFile = '/tmp/yt-cookies.txt';
+  const hasCookies  = !!process.env.YOUTUBE_COOKIES;
+  if (hasCookies) {
+    const cookieContent = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
+    require('fs').writeFileSync(cookiesFile, cookieContent, 'utf8');
+    console.log(`[yt-dlp] Cookies file written. First line: ${cookieContent.split('\n')[0]}`);
+    console.log(`[yt-dlp] Cookie file size: ${cookieContent.length} chars`);
+  } else {
+    console.log('[yt-dlp] No YOUTUBE_COOKIES env var set — proceeding without cookies');
+  }
+
   const args = [
     '--no-playlist','--print-json','--newline',
     '-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
     '--merge-output-format','mp4',
+    // Try iOS/TV client to reduce bot detection
+    '--extractor-args','youtube:player_client=ios,web_embedded,tv_embedded',
+    '--user-agent','Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+    ...(hasCookies ? ['--cookies', cookiesFile] : []),
     '-o', outputTemplate, url
   ];
+
+  console.log(`[yt-dlp] Starting download: ${url}`);
+  console.log(`[yt-dlp] Using cookies: ${hasCookies}`);
 
   const YTDLP = [
     'yt-dlp', process.env.YT_DLP_PATH,
@@ -167,7 +187,11 @@ function startDownload(id, url, _userId) {
   });
 
   let errorOutput = '';
-  ytdlp.stderr.on('data', (chunk) => { errorOutput += chunk.toString(); });
+  ytdlp.stderr.on('data', (chunk) => {
+    const text = chunk.toString();
+    errorOutput += text;
+    console.error(`[yt-dlp stderr] ${text.trim()}`);
+  });
 
   ytdlp.on('close', (code) => {
     activeDownloads.delete(id);
