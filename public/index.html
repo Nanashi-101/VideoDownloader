@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Viddly — Download Any Video, Anywhere</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#f5f3ff', 100:'#ede9fe', 400:'#a78bfa', 500:'#8b5cf6', 600:'#7c3aed', 700:'#6d28d9', 900:'#2e1065' },
+            surface: '#0f0f1a',
+            card: '#13131f',
+          },
+          fontFamily: { sans: ['Inter','sans-serif'] },
+          backgroundImage: {
+            'hero-glow': 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124,58,237,0.35), transparent)',
+            'card-glow': 'radial-gradient(ellipse 60% 60% at 50% 100%, rgba(124,58,237,0.12), transparent)',
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'float-slow': 'float 9s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4,0,0.6,1) infinite',
+          },
+          keyframes: {
+            float: { '0%,100%':{ transform:'translateY(0px)' }, '50%':{ transform:'translateY(-20px)' } },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <style>
+    body { background: #080810; }
+    .gradient-text {
+      background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #818cf8 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      transition: all 0.3s ease;
+      position: relative; overflow: hidden;
+    }
+    .btn-primary::after {
+      content:''; position:absolute; inset:0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity:0; transition: opacity 0.3s;
+    }
+    .btn-primary:hover::after { opacity: 1; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(124,58,237,0.4); }
+    .btn-ghost {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      transition: all 0.3s ease;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-2px); }
+    .feature-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+      border: 1px solid rgba(255,255,255,0.07);
+      transition: all 0.4s ease;
+    }
+    .feature-card:hover {
+      border-color: rgba(124,58,237,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(124,58,237,0.2);
+    }
+    .step-line::after {
+      content:''; position:absolute; top:24px; left:calc(50% + 40px);
+      width:calc(100% - 80px); height:1px;
+      background: linear-gradient(90deg, rgba(124,58,237,0.5), rgba(79,70,229,0.5));
+    }
+    .nav-scrolled { background: rgba(8,8,16,0.9) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #080810; }
+    ::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 3px; }
+    .mockup-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
+    .url-bar { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); }
+    .counter { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="font-sans text-white antialiased">
+
+  <!-- ── Navbar ── -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4 px-6 lg:px-12" style="background:transparent">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3 group">
+        <img src="/logo.png" alt="Viddly" class="h-9 w-auto"/>
+        <span class="font-bold text-lg text-white">Viddly</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#features" class="text-sm text-gray-400 hover:text-white transition-colors">Features</a>
+        <a href="#how-it-works" class="text-sm text-gray-400 hover:text-white transition-colors">How it works</a>
+        <a href="#about" class="text-sm text-gray-400 hover:text-white transition-colors">About</a>
+      </div>
+      <div class="flex items-center gap-3" id="navAuthButtons">
+        <a href="/login" class="btn-ghost text-sm font-medium px-4 py-2 rounded-lg text-gray-300">Sign in</a>
+        <a href="/register" class="btn-primary text-sm font-semibold px-5 py-2 rounded-lg text-white">Get started</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ── -->
+  <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <!-- Background orbs -->
+    <div class="orb w-[600px] h-[600px] bg-brand-600/20 top-[-200px] left-[-100px]" id="orb1"></div>
+    <div class="orb w-[500px] h-[500px] bg-indigo-600/15 top-[100px] right-[-150px]" id="orb2"></div>
+    <div class="orb w-[300px] h-[300px] bg-cyan-600/10 bottom-[0px] left-[30%]" id="orb3"></div>
+    <!-- Grid overlay -->
+    <div class="absolute inset-0 opacity-[0.03]" style="background-image: linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px); background-size:60px 60px;"></div>
+
+    <div class="relative max-w-5xl mx-auto px-6 text-center">
+      <!-- Badge -->
+      <div id="heroBadge" class="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-sm text-brand-400 font-medium mb-8">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        Powered by yt-dlp · 1000+ supported sites
+      </div>
+
+      <!-- Headline -->
+      <h1 id="heroTitle" class="text-5xl md:text-7xl font-black leading-[1.08] tracking-tight mb-6">
+        Download Any Video.<br/>
+        <span class="gradient-text">Anywhere. Instantly.</span>
+      </h1>
+
+      <!-- Subtext -->
+      <p id="heroSub" class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+        A powerful, self-hosted video downloader with user authentication, download history, an in-app player, and support for 1000+ sites including YouTube, Vimeo, Twitter, and TikTok.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div id="heroCta" class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+        <a id="heroCtaPrimary" href="/register" class="btn-primary w-full sm:w-auto text-base font-semibold px-8 py-3.5 rounded-xl text-white inline-flex items-center gap-2">
+          Get started free <span>→</span>
+        </a>
+        <a href="#how-it-works" class="btn-ghost w-full sm:w-auto text-base font-medium px-8 py-3.5 rounded-xl text-gray-300 inline-flex items-center gap-2">
+          <span>▶</span> See how it works
+        </a>
+      </div>
+
+      <!-- Mock UI preview -->
+      <div id="heroMockup" class="mockup-card p-5 max-w-2xl mx-auto shadow-2xl shadow-brand-600/10">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+          <div class="url-bar flex-1 mx-2 rounded-lg px-3 py-1.5 text-xs text-gray-500 text-left">localhost:3000/dashboard</div>
+        </div>
+        <!-- Fake download bar -->
+        <div class="url-bar rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
+          <span class="text-gray-600 text-sm">🔗</span>
+          <span class="text-gray-400 text-sm flex-1 text-left">https://www.youtube.com/watch?v=…</span>
+          <span class="text-xs bg-gradient-to-r from-brand-600 to-indigo-600 text-white px-3 py-1 rounded-lg font-medium">Download</span>
+        </div>
+        <!-- Fake download rows -->
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 p-3 rounded-lg" style="background:rgba(255,255,255,0.03)">
+            <span class="text-lg">🎵</span>
+            <div class="flex-1 text-left">
+              <div class="text-sm text-gray-200 font-medium">Lofi Hip Hop - Study Beats</div>
+              <div class="text-xs text-gray-600">youtube.com</div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-full font-semibold" style="background:#0d2e1e;color:#4ade80">✓ Done</span>
+            <span class="text-sm">▶</span>
+            <span class="text-sm">💾</span>
+          </div>
+          <div class="flex items-center gap-3 p-3 rounded-lg" style="background:rgba(255,255,255,0.03)">
+            <span class="text-lg">🎬</span>
+            <div class="flex-1 text-left">
+              <div class="text-sm text-gray-400 font-medium">Processing…</div>
+              <div class="text-xs text-gray-600">vimeo.com</div>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1.5" style="background:#1e2e40;color:#60a5fa">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span> Downloading
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats bar ── -->
+  <section class="py-12 border-y border-white/[0.06]" style="background:rgba(255,255,255,0.02)">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div class="stat-item">
+          <div class="text-3xl font-black text-white counter" data-target="1000">0</div>
+          <div class="text-sm text-gray-500 mt-1">Supported Sites</div>
+        </div>
+        <div class="stat-item">
+          <div class="text-3xl font-black text-white counter" data-target="4">0</div>
+          <div class="text-sm text-gray-500 mt-1">Video Formats</div>
+        </div>
+        <div class="stat-item">
+          <div class="text-3xl font-black text-white">0</div>
+          <div class="text-sm text-gray-500 mt-1">Config Needed</div>
+        </div>
+        <div class="stat-item">
+          <div class="text-3xl font-black text-white">∞</div>
+          <div class="text-sm text-gray-500 mt-1">Downloads</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ── -->
+  <section id="features" class="py-28 px-6 overflow-hidden">
+    <div class="max-w-6xl mx-auto">
+
+      <!-- Section header -->
+      <div class="text-center mb-24">
+        <div class="section-badge inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-sm text-brand-400 font-medium mb-5">✦ Features</div>
+        <h2 class="section-title text-4xl md:text-5xl font-black tracking-tight mb-4">Everything you need.<br/><span class="gradient-text">Nothing you don't.</span></h2>
+        <p class="section-sub text-gray-400 max-w-xl mx-auto">A full-featured video downloader built for power users who want complete control over their media.</p>
+      </div>
+
+      <!-- ── Feature row 1: Dashboard ── -->
+      <div class="feat-row grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-28">
+        <!-- Text -->
+        <div class="feat-text">
+          <div class="inline-flex items-center gap-2 text-xs font-semibold text-brand-400 uppercase tracking-widest mb-5 glass rounded-full px-3 py-1.5">🔗 Core Download Flow</div>
+          <h3 class="text-3xl font-black text-white mb-4 leading-tight">Paste any URL.<br/>Your video arrives in seconds.</h3>
+          <p class="text-gray-400 leading-relaxed mb-7">Viddly wraps yt-dlp in a clean web interface. Supports 1000+ sites — YouTube, TikTok, Twitter/X, Vimeo, Reddit, Dailymotion, and thousands more. Just paste and hit Download.</p>
+          <ul class="space-y-3">
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-xs text-green-400 flex-shrink-0">✓</span>Background downloads — close the tab anytime</li>
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-xs text-green-400 flex-shrink-0">✓</span>Best-quality MP4 automatically selected</li>
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-xs text-green-400 flex-shrink-0">✓</span>Live status: pending → downloading → done</li>
+          </ul>
+        </div>
+        <!-- Dashboard mockup -->
+        <div class="feat-mockup mockup-card p-4 shadow-2xl shadow-brand-600/10">
+          <!-- Chrome bar -->
+          <div class="flex items-center gap-2 mb-3 px-1">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500/60"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-green-500/60"></div>
+            <div class="url-bar flex-1 mx-2 rounded-md px-3 py-1 text-xs text-gray-600">localhost:3000/dashboard</div>
+          </div>
+          <!-- App layout -->
+          <div class="flex gap-3" style="height:260px">
+            <!-- Mini sidebar -->
+            <div class="w-28 rounded-xl p-2 flex-shrink-0 space-y-1" style="background:rgba(0,0,0,0.35)">
+              <div class="text-xs font-bold text-gray-600 px-2 pt-1 pb-2 flex items-center gap-1.5">
+                <img src="/logo.png" alt="" style="height:14px;width:auto;opacity:0.6"/> Viddly
+              </div>
+              <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(124,58,237,0.2);color:#a78bfa">⬇ Downloads</div>
+              <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-gray-500">📋 History</div>
+              <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-gray-500">🛡 Admin</div>
+            </div>
+            <!-- Main content -->
+            <div class="flex-1 min-w-0">
+              <!-- URL input -->
+              <div class="flex gap-2 mb-3">
+                <div class="url-bar flex-1 rounded-lg px-3 py-2 text-xs text-gray-400 flex items-center gap-2 min-w-0">
+                  <span class="text-gray-600 flex-shrink-0">🔗</span>
+                  <span class="truncate">https://youtube.com/watch?v=dQw4w9WgXcQ</span>
+                </div>
+                <div class="px-3 py-2 rounded-lg text-xs font-semibold text-white flex-shrink-0" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">↓ Get</div>
+              </div>
+              <!-- Rows -->
+              <div class="space-y-2">
+                <div class="flex items-center gap-2 p-2.5 rounded-lg text-xs" style="background:rgba(255,255,255,0.03)">
+                  <span>🎵</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-gray-200 font-medium truncate">Never Gonna Give You Up</div>
+                    <div class="text-gray-600 text-xs">youtube.com · 3.2 MB</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full font-semibold flex-shrink-0 text-xs" style="background:#0d2e1e;color:#4ade80">✓ Done</span>
+                  <span class="text-gray-500 cursor-pointer hover:text-white transition-colors">▶</span>
+                  <span class="text-gray-500 cursor-pointer hover:text-white transition-colors">💾</span>
+                </div>
+                <div class="flex items-center gap-2 p-2.5 rounded-lg text-xs" style="background:rgba(255,255,255,0.03)">
+                  <span>🎬</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-gray-200 font-medium truncate">Big Buck Bunny — Blender</div>
+                    <div class="text-gray-600 text-xs">vimeo.com</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full font-semibold flex-shrink-0 flex items-center gap-1 text-xs" style="background:#1e2e40;color:#60a5fa">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>Downloading
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 p-2.5 rounded-lg text-xs mock-row-new" style="background:rgba(255,255,255,0.03);opacity:0;transition:opacity 0.6s ease">
+                  <span>📹</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-gray-200 font-medium truncate">SpaceX Starship Launch</div>
+                    <div class="text-gray-600 text-xs">twitter.com</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full font-semibold flex-shrink-0 text-xs" style="background:#2e1e10;color:#fb923c">⏳ Pending</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Feature row 2: Video Player (reversed) ── -->
+      <div class="feat-row grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-28">
+        <!-- Player mockup (shown first on mobile, left on desktop) -->
+        <div class="feat-mockup mockup-card p-4 shadow-2xl shadow-pink-600/10 order-2 lg:order-1">
+          <div class="flex items-center gap-2 mb-3 px-1">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500/60"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-green-500/60"></div>
+            <div class="url-bar flex-1 mx-2 rounded-md px-3 py-1 text-xs text-gray-600">In-App Video Player</div>
+          </div>
+          <!-- Video area -->
+          <div class="rounded-xl relative overflow-hidden" style="background:linear-gradient(135deg,#06060f,#0e0e22);aspect-ratio:16/9">
+            <!-- Fake scene: gradient blobs -->
+            <div class="absolute inset-0" style="background:radial-gradient(ellipse 60% 60% at 30% 40%,rgba(124,58,237,0.15),transparent),radial-gradient(ellipse 50% 50% at 75% 65%,rgba(79,70,229,0.12),transparent)"></div>
+            <!-- Fake waveform decorations -->
+            <div class="absolute bottom-10 left-4 right-4 flex items-end gap-px opacity-25" id="waveform" style="height:28px"></div>
+            <!-- Centre play button -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <div id="playerIcon" class="w-14 h-14 rounded-full flex items-center justify-center cursor-pointer shadow-2xl shadow-brand-600/50 transition-transform hover:scale-110" style="background:rgba(124,58,237,0.85);backdrop-filter:blur(4px)" onclick="toggleMockPlayer()">
+                <span id="playerIconText" class="text-white text-xl pl-1">⏸</span>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">Never Gonna Give You Up · 1080p</div>
+            </div>
+          </div>
+          <!-- Controls -->
+          <div class="mt-3 px-1">
+            <div class="w-full h-1.5 rounded-full mb-2 overflow-hidden cursor-pointer" style="background:rgba(255,255,255,0.1)">
+              <div id="progressBar" class="h-full rounded-full" style="background:linear-gradient(90deg,#7c3aed,#4f46e5);width:35%;transition:width 0.9s linear"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs text-gray-500">
+              <div class="flex items-center gap-3">
+                <span class="text-white cursor-pointer select-none" onclick="toggleMockPlayer()" id="playPauseBtn">⏸</span>
+                <span class="cursor-pointer hover:text-white">⏭</span>
+                <span class="cursor-pointer hover:text-white">🔊</span>
+                <span id="mockCurrentTime">1:24</span><span class="text-gray-700">/</span><span>3:32</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold px-1.5 py-0.5 rounded" style="background:rgba(255,255,255,0.08)">HD</span>
+                <span class="cursor-pointer hover:text-white">⛶</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Text -->
+        <div class="feat-text order-1 lg:order-2">
+          <div class="inline-flex items-center gap-2 text-xs font-semibold text-pink-400 uppercase tracking-widest mb-5 glass rounded-full px-3 py-1.5">▶️ In-App Player</div>
+          <h3 class="text-3xl font-black text-white mb-4 leading-tight">Watch your downloads<br/>without leaving the app.</h3>
+          <p class="text-gray-400 leading-relaxed mb-7">A full HTML5 video player with HTTP range streaming means your videos are seekable and full-screenable right in the browser. No extra software, no extra downloads.</p>
+          <ul class="space-y-3">
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-pink-500/20 flex items-center justify-center text-xs text-pink-400 flex-shrink-0">✓</span>Seekable playback via HTTP range requests</li>
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-pink-500/20 flex items-center justify-center text-xs text-pink-400 flex-shrink-0">✓</span>Native fullscreen support</li>
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-pink-500/20 flex items-center justify-center text-xs text-pink-400 flex-shrink-0">✓</span>Auto-converted to MP4 for universal compatibility</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ── Feature row 3: Admin Panel ── -->
+      <div class="feat-row grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center mb-20">
+        <!-- Text -->
+        <div class="feat-text">
+          <div class="inline-flex items-center gap-2 text-xs font-semibold text-orange-400 uppercase tracking-widest mb-5 glass rounded-full px-3 py-1.5">🛡️ Admin Panel</div>
+          <h3 class="text-3xl font-black text-white mb-4 leading-tight">Total control over<br/>users &amp; downloads.</h3>
+          <p class="text-gray-400 leading-relaxed mb-7">The first account you register becomes admin automatically. From the admin panel you can manage all users, monitor every download across all accounts, and keep your instance clean.</p>
+          <ul class="space-y-3">
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center text-xs text-orange-400 flex-shrink-0">✓</span>Toggle roles between admin and user</li>
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center text-xs text-orange-400 flex-shrink-0">✓</span>Enable / disable accounts instantly</li>
+            <li class="flex items-center gap-3 text-sm text-gray-300"><span class="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center text-xs text-orange-400 flex-shrink-0">✓</span>Delete any download from the admin view</li>
+          </ul>
+        </div>
+        <!-- Admin mockup -->
+        <div class="feat-mockup mockup-card p-4 shadow-2xl shadow-orange-600/10">
+          <div class="flex items-center gap-2 mb-3 px-1">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500/60"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-green-500/60"></div>
+            <div class="url-bar flex-1 mx-2 rounded-md px-3 py-1 text-xs text-gray-600">Admin Panel — Users</div>
+          </div>
+          <!-- Stats row -->
+          <div class="grid grid-cols-3 gap-2 mb-3">
+            <div class="rounded-xl p-3 text-center" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+              <div class="text-2xl font-black text-white">3</div>
+              <div class="text-xs text-gray-500 mt-0.5">Users</div>
+            </div>
+            <div class="rounded-xl p-3 text-center" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+              <div class="text-2xl font-black text-white">47</div>
+              <div class="text-xs text-gray-500 mt-0.5">Downloads</div>
+            </div>
+            <div class="rounded-xl p-3 text-center" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+              <div class="text-2xl font-black text-white">2.3<span class="text-sm font-semibold">GB</span></div>
+              <div class="text-xs text-gray-500 mt-0.5">Storage</div>
+            </div>
+          </div>
+          <!-- Users table -->
+          <div class="rounded-xl overflow-hidden" style="border:1px solid rgba(255,255,255,0.07)">
+            <div class="grid grid-cols-4 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wider" style="background:rgba(255,255,255,0.025)">
+              <span>User</span><span>Role</span><span>Status</span><span>Actions</span>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.05)">
+              <div class="grid grid-cols-4 px-3 py-2.5 items-center text-xs" style="border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span class="text-gray-200 font-semibold">sam_admin</span>
+                <span class="text-xs px-2 py-0.5 rounded-full w-fit font-semibold" style="background:rgba(124,58,237,0.2);color:#a78bfa">admin</span>
+                <span class="text-xs px-2 py-0.5 rounded-full w-fit font-semibold" style="background:#0d2e1e;color:#4ade80">active</span>
+                <span class="text-gray-700 text-xs">—</span>
+              </div>
+              <div class="grid grid-cols-4 px-3 py-2.5 items-center text-xs" style="border-bottom:1px solid rgba(255,255,255,0.04)">
+                <span class="text-gray-200 font-semibold">alice</span>
+                <span class="text-xs px-2 py-0.5 rounded-full w-fit font-semibold" style="background:rgba(255,255,255,0.06);color:#9ca3af">user</span>
+                <span class="text-xs px-2 py-0.5 rounded-full w-fit font-semibold" style="background:#0d2e1e;color:#4ade80">active</span>
+                <div class="flex gap-1.5">
+                  <div class="w-5 h-5 rounded flex items-center justify-center text-gray-500 hover:text-white transition-colors cursor-pointer text-xs" style="background:rgba(255,255,255,0.07)" title="Promote">⬆</div>
+                  <div class="w-5 h-5 rounded flex items-center justify-center text-gray-500 hover:text-red-400 transition-colors cursor-pointer text-xs" style="background:rgba(255,255,255,0.07)" title="Disable">⊘</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-4 px-3 py-2.5 items-center text-xs">
+                <span class="text-gray-400 font-semibold">bob_v</span>
+                <span class="text-xs px-2 py-0.5 rounded-full w-fit font-semibold" style="background:rgba(255,255,255,0.06);color:#9ca3af">user</span>
+                <span class="text-xs px-2 py-0.5 rounded-full w-fit font-semibold" style="background:#2e1010;color:#f87171">disabled</span>
+                <div class="flex gap-1.5">
+                  <div class="w-5 h-5 rounded flex items-center justify-center text-gray-500 hover:text-white transition-colors cursor-pointer text-xs" style="background:rgba(255,255,255,0.07)">&#x2B06;</div>
+                  <div class="w-5 h-5 rounded flex items-center justify-center text-green-600 hover:text-green-400 transition-colors cursor-pointer text-xs" style="background:rgba(74,222,128,0.07)">&#x2713;</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Small features grid -->
+      <div class="border-t pt-16" style="border-color:rgba(255,255,255,0.06)">
+        <p class="text-center text-xs font-semibold text-gray-600 uppercase tracking-widest mb-10">And much more</p>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="feature-card feat-card rounded-2xl p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/30 to-indigo-600/30 flex items-center justify-center text-xl flex-shrink-0">&#x1F510;</div>
+            <div><h3 class="text-sm font-bold text-white mb-1">JWT Auth</h3><p class="text-gray-500 text-xs leading-relaxed">Secure login with 7-day tokens and bcrypt password hashing.</p></div>
+          </div>
+          <div class="feature-card feat-card rounded-2xl p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-600/30 to-emerald-600/30 flex items-center justify-center text-xl flex-shrink-0">&#x1F4CB;</div>
+            <div><h3 class="text-sm font-bold text-white mb-1">Download History</h3><p class="text-gray-500 text-xs leading-relaxed">Full log with status, file size, and date for every download.</p></div>
+          </div>
+          <div class="feature-card feat-card rounded-2xl p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-600/30 to-cyan-600/30 flex items-center justify-center text-xl flex-shrink-0">&#x1F4BE;</div>
+            <div><h3 class="text-sm font-bold text-white mb-1">SQLite DB</h3><p class="text-gray-500 text-xs leading-relaxed">Zero-config embedded database. Nothing extra to install.</p></div>
+          </div>
+          <div class="feature-card feat-card rounded-2xl p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-600/30 to-yellow-600/30 flex items-center justify-center text-xl flex-shrink-0">&#x1F504;</div>
+            <div><h3 class="text-sm font-bold text-white mb-1">ffmpeg Conversion</h3><p class="text-gray-500 text-xs leading-relaxed">Auto-converts any format to MP4 so it plays everywhere.</p></div>
+          </div>
+          <div class="feature-card feat-card rounded-2xl p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600/30 to-cyan-600/30 flex items-center justify-center text-xl flex-shrink-0">&#x26A1;</div>
+            <div><h3 class="text-sm font-bold text-white mb-1">Background Jobs</h3><p class="text-gray-500 text-xs leading-relaxed">Downloads run server-side. Close the tab &mdash; it still runs.</p></div>
+          </div>
+          <div class="feature-card feat-card rounded-2xl p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-600/30 to-rose-600/30 flex items-center justify-center text-xl flex-shrink-0">&#x1F3E0;</div>
+            <div><h3 class="text-sm font-bold text-white mb-1">Self-Hosted</h3><p class="text-gray-500 text-xs leading-relaxed">Your data never leaves your machine. No cloud. No tracking.</p></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works" class="py-28 px-6" style="background: radial-gradient(ellipse 80% 50% at 50% 50%, rgba(124,58,237,0.07), transparent)">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <div class="section-badge2 inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-sm text-brand-400 font-medium mb-5">&#x26A1; How it works</div>
+        <h2 class="section-title2 text-4xl md:text-5xl font-black tracking-tight mb-4">Three steps to<br/><span class="gradient-text">any video.</span></h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+        <div class="step-card text-center">
+          <div class="relative inline-flex">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-600 to-indigo-600 flex items-center justify-center text-2xl mb-6 mx-auto shadow-xl shadow-brand-600/30">1</div>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Create account</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Register in seconds. The first user becomes admin. No email verification needed for self-hosted setups.</p>
+        </div>
+        <div class="step-card text-center">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center text-2xl mb-6 mx-auto shadow-xl shadow-cyan-600/20">2</div>
+          <h3 class="text-xl font-bold text-white mb-3">Paste any URL</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Copy the video URL from your browser and paste it into the dashboard. Hit Download &mdash; that&apos;s it.</p>
+        </div>
+        <div class="step-card text-center">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-600 to-rose-600 flex items-center justify-center text-2xl mb-6 mx-auto shadow-xl shadow-pink-600/20">3</div>
+          <h3 class="text-xl font-bold text-white mb-3">Watch or save</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Play the video instantly in the built-in player, or download it to your device to keep forever.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="py-28 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <div class="about-badge inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-sm text-brand-400 font-medium mb-6">&#x1F3AF; About</div>
+          <h2 class="about-title text-4xl font-black tracking-tight mb-6 leading-tight">Built for people who own<br/><span class="gradient-text">their media.</span></h2>
+          <p class="about-text text-gray-400 leading-relaxed mb-5">Viddly is a self-hosted web app built on Node.js and Express. It wraps the powerful yt-dlp command-line tool in a clean, modern web interface &mdash; giving you the full power of yt-dlp without ever touching a terminal.</p>
+          <p class="about-text text-gray-400 leading-relaxed mb-8">Your data stays on your machine. No cloud. No subscriptions. No tracking. Just a fast, reliable tool for downloading the videos you care about.</p>
+          <div class="flex flex-wrap gap-3">
+            <span class="glass rounded-full px-4 py-1.5 text-sm text-gray-300">Node.js</span>
+            <span class="glass rounded-full px-4 py-1.5 text-sm text-gray-300">Express</span>
+            <span class="glass rounded-full px-4 py-1.5 text-sm text-gray-300">SQLite</span>
+            <span class="glass rounded-full px-4 py-1.5 text-sm text-gray-300">yt-dlp</span>
+            <span class="glass rounded-full px-4 py-1.5 text-sm text-gray-300">JWT Auth</span>
+          </div>
+        </div>
+        <div class="about-visual space-y-4">
+          <div class="glass rounded-2xl p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/30 to-emerald-500/30 flex items-center justify-center text-sm">&#x2713;</div>
+              <span class="font-semibold text-white">Self-hosted &amp; private</span>
+            </div>
+            <p class="text-sm text-gray-400">Runs entirely on your machine. No data leaves your network.</p>
+          </div>
+          <div class="glass rounded-2xl p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/30 to-cyan-500/30 flex items-center justify-center text-sm">&#x26A1;</div>
+              <span class="font-semibold text-white">Background downloads</span>
+            </div>
+            <p class="text-sm text-gray-400">Downloads run in the background. Close the tab and come back later.</p>
+          </div>
+          <div class="glass rounded-2xl p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center text-sm">&#x1F513;</div>
+              <span class="font-semibold text-white">Open source stack</span>
+            </div>
+            <p class="text-sm text-gray-400">Built entirely on open-source tools. Inspect, modify, extend freely.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="py-28 px-6">
+    <div class="max-w-3xl mx-auto">
+      <div class="cta-card relative rounded-3xl overflow-hidden p-12 text-center" style="background: linear-gradient(135deg, rgba(124,58,237,0.2) 0%, rgba(79,70,229,0.15) 100%); border: 1px solid rgba(124,58,237,0.3)">
+        <div class="orb w-64 h-64 bg-brand-600/30" style="top:-60px;right:-40px;filter:blur(60px)"></div>
+        <div class="orb w-48 h-48 bg-indigo-600/20" style="bottom:-40px;left:-20px;filter:blur(50px)"></div>
+        <div class="relative">
+          <h2 class="cta-title text-4xl md:text-5xl font-black tracking-tight mb-4">Ready to start<br/><span class="gradient-text">downloading?</span></h2>
+          <p class="cta-sub text-gray-400 mb-8 text-lg">Set up takes under 5 minutes. No cloud. No subscriptions.</p>
+          <a id="bottomCta" href="/register" class="btn-primary inline-flex items-center gap-2 text-base font-semibold px-8 py-4 rounded-xl text-white">
+            Create your account &rarr;
+          </a>
+          <div id="bottomCtaSub" class="mt-6 text-sm text-gray-600">Already have an account? <a href="/login" class="text-brand-400 hover:text-brand-300 transition-colors">Sign in</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/[0.06] py-16 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+        <div class="col-span-1 md:col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <img src="/logo.png" alt="Viddly" class="h-9 w-auto"/>
+            <span class="font-bold text-lg">Viddly</span>
+          </div>
+          <p class="text-gray-500 text-sm leading-relaxed max-w-xs">A self-hosted video downloader with auth, history, and an in-app player. Your media, your rules.</p>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold text-white mb-4">App</h4>
+          <ul class="space-y-2">
+            <li><a href="/register" class="text-sm text-gray-500 hover:text-white transition-colors">Get started</a></li>
+            <li><a href="/login" class="text-sm text-gray-500 hover:text-white transition-colors">Sign in</a></li>
+            <li><a href="/dashboard" class="text-sm text-gray-500 hover:text-white transition-colors">Dashboard</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold text-white mb-4">Resources</h4>
+          <ul class="space-y-2">
+            <li><a href="https://github.com/yt-dlp/yt-dlp" target="_blank" class="text-sm text-gray-500 hover:text-white transition-colors">yt-dlp docs</a></li>
+            <li><a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md" target="_blank" class="text-sm text-gray-500 hover:text-white transition-colors">Supported sites</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-white/[0.05] pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <span class="text-sm text-gray-600">&copy; 2026 Viddly. Built with Node.js &amp; yt-dlp.</span>
+        <span class="text-sm text-gray-600">Use responsibly. Respect copyright laws.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Navbar scroll effect
+    window.addEventListener('scroll', () => {
+      document.getElementById('navbar').classList.toggle('nav-scrolled', window.scrollY > 40);
+    });
+
+    // Hero entrance
+    const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    heroTl
+      .from('#heroBadge',   { y: 30, opacity: 0, duration: 0.7 })
+      .from('#heroTitle',   { y: 40, opacity: 0, duration: 0.8 }, '-=0.4')
+      .from('#heroSub',     { y: 30, opacity: 0, duration: 0.7 }, '-=0.5')
+      .from('#heroCta',     { y: 25, opacity: 0, duration: 0.7 }, '-=0.5')
+      .from('#heroMockup',  { y: 50, opacity: 0, duration: 1, ease: 'power2.out' }, '-=0.4');
+
+    // Floating orbs
+    gsap.to('#orb1', { y: -30, x: 20,  duration: 8,  repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.to('#orb2', { y: 25,  x: -15, duration: 10, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.to('#orb3', { y: -20, x: 10,  duration: 7,  repeat: -1, yoyo: true, ease: 'sine.inOut' });
+
+    // Stats counter
+    document.querySelectorAll('.counter').forEach(el => {
+      const target = parseInt(el.dataset.target);
+      ScrollTrigger.create({
+        trigger: el, start: 'top 85%', once: true,
+        onEnter: () => {
+          gsap.to({ val: 0 }, {
+            val: target, duration: 1.5, ease: 'power2.out',
+            onUpdate: function() { el.textContent = Math.round(this.targets()[0].val) + '+'; }
+          });
+        }
+      });
+    });
+
+    // Section badges
+    gsap.utils.toArray('.section-badge,.section-badge2,.about-badge').forEach(el => {
+      gsap.from(el, { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out',
+        scrollTrigger: { trigger: el, start: 'top 85%', once: true }});
+    });
+
+    // Section titles
+    gsap.utils.toArray('.section-title,.section-title2,.about-title,.cta-title').forEach(el => {
+      gsap.from(el, { y: 40, opacity: 0, duration: 0.8, ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 85%', once: true }});
+    });
+    gsap.utils.toArray('.section-sub,.about-text,.cta-sub').forEach(el => {
+      gsap.from(el, { y: 20, opacity: 0, duration: 0.7, ease: 'power2.out',
+        scrollTrigger: { trigger: el, start: 'top 88%', once: true }});
+    });
+
+    // Feature rows (slide in from sides)
+    gsap.utils.toArray('.feat-row').forEach((row, i) => {
+      const cols = row.querySelectorAll('.feat-text, .feat-mockup');
+      cols.forEach((col, j) => {
+        const fromLeft = (i % 2 === 0) ? j === 0 : j === 1;
+        gsap.from(col, {
+          x: fromLeft ? -60 : 60, opacity: 0, duration: 0.9, ease: 'power3.out',
+          delay: j * 0.12,
+          scrollTrigger: { trigger: row, start: 'top 80%', once: true }
+        });
+      });
+    });
+
+    // Feature cards stagger
+    gsap.from('.feat-card', {
+      y: 40, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out',
+      scrollTrigger: { trigger: '.feat-card', start: 'top 88%', once: true }
+    });
+
+    // Steps stagger
+    gsap.from('.step-card', {
+      y: 40, opacity: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out',
+      scrollTrigger: { trigger: '.step-card', start: 'top 85%', once: true }
+    });
+
+    // About visual
+    gsap.from('.about-visual > *', {
+      x: 40, opacity: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out',
+      scrollTrigger: { trigger: '.about-visual', start: 'top 80%', once: true }
+    });
+
+    // CTA card
+    gsap.from('.cta-card', {
+      scale: 0.95, opacity: 0, duration: 0.8, ease: 'power3.out',
+      scrollTrigger: { trigger: '.cta-card', start: 'top 85%', once: true }
+    });
+
+    // Mock player waveform
+    const waveEl = document.getElementById('waveform');
+    if (waveEl) {
+      [40,65,30,80,55,90,35,70,50,85,45,75,60,95,40,70,55,80,35,90,50,65,45,75,30,85,60,70,40,55,80,95,35,65,50,75,45,90,55,70].forEach(h => {
+        const b = document.createElement('div');
+        b.style.cssText = 'width:3px;flex-shrink:0;border-radius:1px;background:rgba(167,139,250,0.7);height:' + h + '%';
+        waveEl.appendChild(b);
+      });
+    }
+
+    // Mock player progress ticker
+    let mockPlaying = true, mockSec = 84;
+    const totalSec = 212;
+    const pBar = document.getElementById('progressBar');
+    const tEl  = document.getElementById('mockCurrentTime');
+    function fmtTime(s) { return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+    setInterval(() => {
+      if (!mockPlaying) return;
+      mockSec = (mockSec + 1) % totalSec;
+      if (pBar) pBar.style.width = (mockSec / totalSec * 100) + '%';
+      if (tEl)  tEl.textContent  = fmtTime(mockSec);
+    }, 1000);
+
+    window.toggleMockPlayer = function() {
+      mockPlaying = !mockPlaying;
+      const sym = mockPlaying ? '⏸' : '▶';
+      const btn  = document.getElementById('playPauseBtn');
+      const icon = document.getElementById('playerIconText');
+      if (btn)  btn.textContent  = sym;
+      if (icon) icon.textContent = sym;
+    };
+
+    // Fade in pending row after 2.5s
+    setTimeout(() => {
+      const nr = document.querySelector('.mock-row-new');
+      if (nr) nr.style.opacity = '1';
+    }, 2500);
+  </script>
+  <!-- Clerk: swap nav/CTA buttons if user is already signed in -->
+  <script src="/clerk.browser.js" data-clerk-publishable-key="pk_test_YWRqdXN0ZWQtZXdlLTEuY2xlcmsuYWNjb3VudHMuZGV2JA"></script>
+  <script>
+    (async () => {
+      try {
+        await window.Clerk.load();
+        if (!window.Clerk.user) return; // not logged in — keep everything as-is
+
+        // ── Navbar: replace Sign in + Get started with one Dashboard button ──
+        document.getElementById('navAuthButtons').innerHTML =
+          '<a href="/dashboard" class="btn-primary text-sm font-semibold px-5 py-2 rounded-lg text-white">Go to Dashboard →</a>';
+
+        // ── Hero CTA: swap primary button ──
+        const heroPrimary = document.getElementById('heroCtaPrimary');
+        if (heroPrimary) {
+          heroPrimary.href        = '/dashboard';
+          heroPrimary.innerHTML   = 'Go to Dashboard <span>→</span>';
+        }
+
+        // ── Bottom CTA section ──
+        const bottomCta = document.getElementById('bottomCta');
+        if (bottomCta) {
+          bottomCta.href      = '/dashboard';
+          bottomCta.innerHTML = 'Go to Dashboard &rarr;';
+        }
+        const bottomSub = document.getElementById('bottomCtaSub');
+        if (bottomSub) bottomSub.style.display = 'none';
+
+      } catch (_) {
+        // Clerk failed silently — page stays in logged-out state, which is safe
+      }
+    })();
+  </script>
+</body>
+</html>

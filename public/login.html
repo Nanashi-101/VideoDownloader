@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign in — Viddly</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    body { background: #080810; }
+    .orb { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; }
+    .gradient-text { background:linear-gradient(135deg,#fff 0%,#a78bfa 60%,#818cf8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    /* Style Clerk component to match dark theme */
+    .cl-rootBox { width:100% !important; }
+    .cl-card { background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.08) !important; box-shadow: 0 24px 48px rgba(0,0,0,0.4) !important; border-radius: 20px !important; }
+    .cl-headerTitle { color: #ffffff !important; }
+    .cl-headerSubtitle, .cl-footerActionText, .cl-formFieldLabel { color: #9ca3af !important; }
+    .cl-formFieldInput { background: rgba(0,0,0,0.35) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #e2e2e9 !important; border-radius: 10px !important; }
+    .cl-formFieldInput:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.15) !important; outline: none !important; }
+    .cl-formButtonPrimary { background: linear-gradient(135deg,#7c3aed,#4f46e5) !important; border-radius: 10px !important; font-weight: 600 !important; box-shadow: 0 8px 24px rgba(124,58,237,0.3) !important; }
+    .cl-footerActionLink, .cl-identityPreviewEditButton { color: #a78bfa !important; }
+    .cl-dividerLine { background: rgba(255,255,255,0.08) !important; }
+    .cl-dividerText { color: #6b7280 !important; }
+    .cl-socialButtonsBlockButton { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #e2e2e9 !important; border-radius: 10px !important; }
+    .cl-socialButtonsBlockButton:hover { background: rgba(255,255,255,0.08) !important; }
+    .cl-internal-b3fm6y { color: #6b7280 !important; }
+    .spinner { width:36px;height:36px;border:3px solid rgba(124,58,237,0.2);border-top-color:#7c3aed;border-radius:50%;animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .form-input { width:100%; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.1); color:#e2e2e9; border-radius:10px; padding:11px 14px; font-size:14px; outline:none; transition:border-color 0.2s,box-shadow 0.2s; }
+    .form-input:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,0.15); }
+    .form-input::placeholder { color:#4b5563; }
+    .btn-primary { width:100%; background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 24px rgba(124,58,237,0.3); transition:opacity 0.2s,transform 0.1s; }
+    .btn-primary:hover { opacity:0.9; }
+    .btn-primary:active { transform:scale(0.99); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
+    .field-error { color:#f87171; font-size:12px; margin-top:4px; display:none; }
+    .divider { display:flex; align-items:center; gap:12px; margin:20px 0; }
+    .divider hr { flex:1; border:none; border-top:1px solid rgba(255,255,255,0.08); }
+    .divider span { color:#4b5563; font-size:12px; }
+    .btn-social { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e2e2e9; border-radius:10px; padding:11px; font-size:14px; font-weight:500; cursor:pointer; transition:background 0.2s; }
+    .btn-social:hover { background:rgba(255,255,255,0.09); }
+  </style>
+</head>
+<body class="font-sans text-white antialiased min-h-screen flex" style="font-family:'Inter',sans-serif">
+
+  <!-- Left panel -->
+  <div class="hidden lg:flex flex-col justify-between w-[45%] relative overflow-hidden p-12"
+       style="background:linear-gradient(135deg,rgba(124,58,237,0.15) 0%,rgba(79,70,229,0.08) 100%); border-right:1px solid rgba(255,255,255,0.06)">
+    <div class="orb w-96 h-96 bg-purple-700/25" style="top:-80px;left:-80px"></div>
+    <div class="orb w-72 h-72 bg-indigo-700/20" style="bottom:-40px;right:-40px"></div>
+    <div class="relative">
+      <a href="/" class="flex items-center gap-3">
+        <img src="/logo.png" alt="Viddly" style="height:36px;width:auto"/>
+        <span class="font-bold text-xl">Viddly</span>
+      </a>
+    </div>
+    <div class="relative space-y-8">
+      <div>
+        <h1 class="text-4xl font-black leading-tight mb-4">Welcome back to<br/><span class="gradient-text">your media hub.</span></h1>
+        <p class="text-gray-400 leading-relaxed">Sign in to access your downloads, history, and the in-app video player.</p>
+      </div>
+      <div class="space-y-4">
+        <div class="rounded-2xl p-5 flex items-start gap-4" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+          <span class="text-2xl">🌐</span>
+          <div><div class="font-semibold text-sm text-white mb-1">1000+ supported sites</div><div class="text-xs text-gray-500">YouTube, Vimeo, TikTok, Twitter, and more</div></div>
+        </div>
+        <div class="rounded-2xl p-5 flex items-start gap-4" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+          <span class="text-2xl">▶️</span>
+          <div><div class="font-semibold text-sm text-white mb-1">In-app video player</div><div class="text-xs text-gray-500">Watch your downloads without leaving the app</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="relative text-xs text-gray-600">© 2026 Viddly</div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="flex-1 flex items-center justify-center p-6 relative">
+    <div class="orb w-64 h-64 bg-purple-700/10" style="top:-40px;right:-40px"></div>
+    <div class="w-full max-w-[420px]">
+      <div class="lg:hidden flex items-center gap-3 mb-10">
+        <img src="/logo.png" alt="Viddly" style="height:32px;width:auto"/>
+        <span class="font-bold text-lg">Viddly</span>
+      </div>
+
+      <!-- Initialising -->
+      <div id="view-loading" style="display:flex;justify-content:center;padding:60px 0">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Sign-in form -->
+      <div id="view-form" style="display:none">
+        <h2 class="text-2xl font-bold mb-1">Sign in</h2>
+        <p class="text-gray-500 text-sm mb-7">Don't have an account? <a href="/register" class="text-purple-400 hover:text-purple-300">Create one</a></p>
+
+        <div id="global-error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px 14px;font-size:13px;color:#fca5a5;margin-bottom:16px"></div>
+
+        <!-- Social buttons -->
+        <div class="space-y-3 mb-5">
+          <button onclick="signInWith('oauth_google')" class="btn-social">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/></svg>
+            Continue with Google
+          </button>
+          <button onclick="signInWith('oauth_apple')" class="btn-social">
+            <svg width="18" height="18" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.2-57.3-155.5-127.3C46.7 790 0 665.5 0 547.5c0-175.4 114.4-268.2 226.7-268.2 86.2 0 158.2 56.9 212.5 56.9 52.3 0 134.2-59.9 230.7-59.9zm-109-254.7c51.7-63 88.4-150.8 88.4-238.6 0-12.2-.9-24.4-3.2-34.3-84.3 3.2-183 55.8-244.4 127.3-44.7 52.4-90.7 138.5-90.7 227.6 0 13.4 2.3 26.9 3.2 31.2 5.8.9 15.3 2.3 24.7 2.3 75.8 0 166.2-50.8 221.8-115.5z"/></svg>
+            Continue with Apple
+          </button>
+        </div>
+
+        <div class="divider"><hr/><span>or</span><hr/></div>
+
+        <form id="signin-form" novalidate>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Email address</label>
+            <input id="email" type="email" class="form-input" placeholder="you@example.com" autocomplete="email" required/>
+            <p class="field-error" id="email-error">Please enter a valid email</p>
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-300 mb-2" style="display:flex;justify-content:space-between">
+              <span>Password</span>
+            </label>
+            <input id="password" type="password" class="form-input" placeholder="••••••••" autocomplete="current-password" required/>
+            <p class="field-error" id="password-error">Password is required</p>
+          </div>
+          <button type="submit" class="btn-primary" id="submit-btn">Sign in</button>
+        </form>
+
+        <p class="text-center text-xs text-gray-600 mt-6">
+          <a href="/" class="text-purple-400 hover:text-purple-300 transition-colors">← Back to home</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/clerk.browser.js" data-clerk-publishable-key="pk_test_YWRqdXN0ZWQtZXdlLTEuY2xlcmsuYWNjb3VudHMuZGV2JA"></script>
+  <script>
+    function show(id) {
+      ['view-loading','view-form'].forEach(v => {
+        document.getElementById(v).style.display = (v === id) ? 'block' : 'none';
+      });
+    }
+    function setGlobalError(msg) {
+      const el = document.getElementById('global-error');
+      el.textContent = msg;
+      el.style.display = msg ? 'block' : 'none';
+    }
+
+    async function signInWith(strategy) {
+      try {
+        await window.Clerk.client.signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: window.location.origin + '/sso-callback',
+          redirectUrlComplete: '/dashboard',
+        });
+      } catch (err) {
+        setGlobalError(err.errors?.[0]?.message || 'OAuth sign-in failed.');
+      }
+    }
+
+    (async () => {
+      await window.Clerk.load();
+      if (window.Clerk.user) { window.location.href = '/dashboard'; return; }
+      show('view-form');
+    })();
+
+    document.getElementById('signin-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setGlobalError('');
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = document.getElementById('submit-btn');
+
+      if (!email || !password) {
+        setGlobalError('Please fill in all fields.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const result = await window.Clerk.client.signIn.create({
+          identifier: email,
+          password,
+        });
+
+        if (result.status === 'complete') {
+          await window.Clerk.setActive({ session: result.createdSessionId });
+          window.location.href = '/dashboard';
+        } else {
+          // needs further verification (e.g. 2FA)
+          setGlobalError('Additional verification required. Please check your email.');
+        }
+      } catch (err) {
+        console.error('[Clerk] sign-in error:', err);
+        const msg = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || err.message || 'Sign-in failed. Please try again.';
+        setGlobalError(msg);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

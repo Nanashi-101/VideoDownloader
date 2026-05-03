@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit this
+.env
+.env.local
+.env.production
+
+# Downloaded video files
+downloads/
+
+# Old SQLite database files (migrated to PostgreSQL)
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Backup folders
+VideoDownloader_backup_*/
+
+# Handoff/notes files with secrets
+CONTINUE_FROM_HERE.md

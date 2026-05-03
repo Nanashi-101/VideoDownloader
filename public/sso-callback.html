@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signing in — Viddly</title>
+  <style>
+    body {
+      background: #080810;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(124, 58, 237, 0.2);
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    p {
+      color: #9ca3af;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .error {
+      color: #f87171;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    <div class="spinner"></div>
+    <p id="msg">Completing sign-in…</p>
+  </div>
+
+  <script src="/clerk.browser.js"
+    data-clerk-publishable-key="pk_test_YWRqdXN0ZWQtZXdlLTEuY2xlcmsuYWNjb3VudHMuZGV2JA"></script>
+  <script>
+    (async () => {
+      try {
+        await window.Clerk.load();
+        await window.Clerk.handleRedirectCallback({
+          afterSignInUrl: '/dashboard',
+          afterSignUpUrl: '/dashboard',
+          signInFallbackRedirectUrl: '/dashboard',
+          signUpFallbackRedirectUrl: '/dashboard',
+        });
+        // Clerk should have redirected by now; if not, push manually
+        window.location.href = '/dashboard';
+      } catch (err) {
+        console.error('[Clerk] SSO callback error:', err);
+        document.getElementById('msg').className = 'error';
+        document.getElementById('msg').textContent = 'Sign-in failed. ' + (err.errors?.[0]?.message || err.message);
+        setTimeout(() => window.location.href = '/login', 3000);
+      }
+    })();
+  </script>
+</body>
+
+</html>
