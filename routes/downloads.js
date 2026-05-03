@@ -141,9 +141,8 @@ function startDownload(id, url, _userId) {
     '--no-playlist','--print-json','--newline',
     '-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
     '--merge-output-format','mp4',
-    // Try iOS/TV client to reduce bot detection
-    '--extractor-args','youtube:player_client=ios,web_embedded,tv_embedded',
-    '--user-agent','Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+    // Use web clients that don't require PO tokens
+    '--extractor-args','youtube:player_client=web,mweb,web_embedded',
     ...(hasCookies ? ['--cookies', cookiesFile] : []),
     '-o', outputTemplate, url
   ];
