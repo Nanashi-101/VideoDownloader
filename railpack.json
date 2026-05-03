@@ -1,5 +1,8 @@
 {
-  "packages": ["yt-dlp", "ffmpeg"],
+  "packages": {
+    "yt-dlp": "latest",
+    "ffmpeg": "latest"
+  },
   "install": {
     "cmd": "npm install --omit=dev"
   },
