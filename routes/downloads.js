@@ -5,6 +5,7 @@ const fs       = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { query } = require('../db');
 const { protect } = require('../middleware/auth');
+const { R2_ENABLED, uploadFile, getPresignedUrl, deleteFile } = require('../lib/r2');
 
 const router        = express.Router();
 const DOWNLOADS_DIR = path.join(__dirname, '..', 'downloads');
@@ -17,14 +18,10 @@ const dbCreate  = (id, userId, url) =>
   query('INSERT INTO downloads (id, user_id, url, status) VALUES ($1,$2,$3,$4)',
         [id, userId, url, 'pending']);
 
-const dbUpdate  = (id, title, filename, format, sizeBytes, status, error, completedAt) =>
+const dbUpdate  = (id, title, filename, format, sizeBytes, status, error, completedAt, r2Key = null) =>
   query(`UPDATE downloads SET title=$1,filename=$2,format=$3,size_bytes=$4,
-         status=$5,error=$6,completed_at=$7 WHERE id=$8`,
-        [title, filename, format, sizeBytes, status, error, completedAt, id]);
-
-const dbStatus  = (id, status, error) =>
-  query(`UPDATE downloads SET status=$1,error=$2,completed_at=NOW() WHERE id=$3`,
-        [status, error, id]);
+         status=$5,error=$6,completed_at=$7,r2_key=$8 WHERE id=$9`,
+        [title, filename, format, sizeBytes, status, error, completedAt, r2Key, id]);
 
 const dbGet     = async (id) => (await query('SELECT * FROM downloads WHERE id=$1',[id])).rows[0];
 
@@ -75,9 +72,13 @@ router.delete('/:id', protect, async (req, res) => {
   const proc = activeDownloads.get(req.params.id);
   if (proc) { proc.kill(); activeDownloads.delete(req.params.id); }
 
+  // Delete from R2 if stored there
+  if (row.r2_key) await deleteFile(row.r2_key);
+
+  // Delete from local disk if it exists
   if (row.filename) {
     const filePath = path.join(DOWNLOADS_DIR, row.filename);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (fs.existsSync(filePath)) { try { fs.unlinkSync(filePath); } catch {} }
   }
 
   if (req.user.role === 'admin') await dbAdminDel(req.params.id);
@@ -86,13 +87,25 @@ router.delete('/:id', protect, async (req, res) => {
   res.json({ message: 'Deleted' });
 });
 
-// GET /api/downloads/:id/file  — range-aware streaming, ?token= supported
+// GET /api/downloads/:id/file — R2 presigned URL redirect OR local stream
 router.get('/:id/file', protect, async (req, res) => {
   const row = await dbGet(req.params.id);
   if (!row || row.status !== 'done') return res.status(404).json({ error: 'File not ready' });
   if (row.user_id !== req.user.id && req.user.role !== 'admin')
     return res.status(403).json({ error: 'Forbidden' });
 
+  // ── R2 path: generate presigned URL and redirect ──────────────────────────
+  if (row.r2_key && R2_ENABLED) {
+    try {
+      const signedUrl = await getPresignedUrl(row.r2_key, 3600);
+      return res.redirect(302, signedUrl);
+    } catch (err) {
+      console.error('[R2] Failed to generate presigned URL:', err.message);
+      return res.status(500).json({ error: 'Could not generate file URL' });
+    }
+  }
+
+  // ── Local disk fallback ───────────────────────────────────────────────────
   const filePath = path.join(DOWNLOADS_DIR, row.filename);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File missing on disk' });
 
@@ -125,30 +138,26 @@ function startDownload(id, url, _userId) {
   dbUpdate(id, null, null, null, null, 'downloading', null, null).catch(console.error);
 
   // Write YouTube cookies to temp file if provided via env var
-  // Railway may store newlines as literal \n — normalize them
   const cookiesFile = '/tmp/yt-cookies.txt';
   const hasCookies  = !!process.env.YOUTUBE_COOKIES;
   if (hasCookies) {
     const cookieContent = process.env.YOUTUBE_COOKIES.replace(/\\n/g, '\n');
-    require('fs').writeFileSync(cookiesFile, cookieContent, 'utf8');
-    console.log(`[yt-dlp] Cookies file written. First line: ${cookieContent.split('\n')[0]}`);
-    console.log(`[yt-dlp] Cookie file size: ${cookieContent.length} chars`);
+    fs.writeFileSync(cookiesFile, cookieContent, 'utf8');
+    console.log(`[yt-dlp] Cookies written. First line: ${cookieContent.split('\n')[0]}`);
   } else {
-    console.log('[yt-dlp] No YOUTUBE_COOKIES env var set — proceeding without cookies');
+    console.log('[yt-dlp] No YOUTUBE_COOKIES set — proceeding without cookies');
   }
 
   const args = [
     '--no-playlist','--print-json','--newline',
     '-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[height<=1080]/best',
     '--merge-output-format','mp4',
-    // web_embedded doesn't require PO tokens
     '--extractor-args','youtube:player_client=web_embedded',
     ...(hasCookies ? ['--cookies', cookiesFile] : []),
     '-o', outputTemplate, url
   ];
 
-  console.log(`[yt-dlp] Starting download: ${url}`);
-  console.log(`[yt-dlp] Using cookies: ${hasCookies}`);
+  console.log(`[yt-dlp] Starting: ${url} | R2: ${R2_ENABLED}`);
 
   const YTDLP = [
     'yt-dlp', process.env.YT_DLP_PATH,
@@ -175,13 +184,13 @@ function startDownload(id, url, _userId) {
     for (const line of lines) {
       if (!line.trim()) continue;
       try {
-        const info    = JSON.parse(line);
-        title         = info.title || null;
-        format        = info.ext   || null;
-        sizeBytes     = info.filesize || info.filesize_approx || null;
-        const safe    = (info.title||'video').replace(/[/\\?%*:|"<>]/g,'_').substring(0,80);
-        filename      = `${id}_${safe}.${info.ext||'mp4'}`;
-      } catch { /* partial */ }
+        const info = JSON.parse(line);
+        title      = info.title || null;
+        format     = info.ext   || null;
+        sizeBytes  = info.filesize || info.filesize_approx || null;
+        const safe = (info.title||'video').replace(/[/\\?%*:|"<>]/g,'_').substring(0,80);
+        filename   = `${id}_${safe}.${info.ext||'mp4'}`;
+      } catch { /* partial line */ }
     }
   });
 
@@ -199,25 +208,30 @@ function startDownload(id, url, _userId) {
       dbUpdate(id, title, filename, format, sizeBytes, 'failed', errMsg, new Date().toISOString()).catch(console.error);
       return;
     }
+
+    // Determine final local file path
     const needsConversion = filename && !filename.toLowerCase().endsWith('.mp4');
+    const localFile = needsConversion
+      ? path.join(DOWNLOADS_DIR, filename.replace(/\.[^.]+$/, '.mp4'))
+      : path.join(DOWNLOADS_DIR, filename);
+    const finalFilename = path.basename(localFile);
+
     if (needsConversion) {
-      const inputPath  = path.join(DOWNLOADS_DIR, filename);
-      const mp4Name    = filename.replace(/\.[^.]+$/, '.mp4');
-      const outputPath = path.join(DOWNLOADS_DIR, mp4Name);
-      dbUpdate(id, title, filename, format, sizeBytes, 'converting', null, null).catch(console.error);
-      console.log(`[ffmpeg] Converting ${filename} → ${mp4Name}`);
-      convertToMp4(inputPath, outputPath)
+      const inputPath = path.join(DOWNLOADS_DIR, filename);
+      dbUpdate(id, title, finalFilename, format, sizeBytes, 'converting', null, null).catch(console.error);
+      console.log(`[ffmpeg] Converting ${filename} → ${finalFilename}`);
+      convertToMp4(inputPath, localFile)
         .then(() => {
           try { if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath); } catch {}
-          dbUpdate(id, title, mp4Name, 'mp4', sizeBytes, 'done', null, new Date().toISOString()).catch(console.error);
-          console.log(`[✓] Conversion done: ${mp4Name}`);
+          finalizeDownload(id, title, finalFilename, localFile, sizeBytes);
         })
         .catch((err) => {
-          console.error(`[✗] ffmpeg failed: ${err.message}`);
-          dbUpdate(id, title, filename, format, sizeBytes, 'done', null, new Date().toISOString()).catch(console.error);
+          console.error(`[ffmpeg] Failed: ${err.message}`);
+          // Still mark as done with original file
+          finalizeDownload(id, title, filename, path.join(DOWNLOADS_DIR, filename), sizeBytes);
         });
     } else {
-      dbUpdate(id, title, filename, 'mp4', sizeBytes, 'done', null, new Date().toISOString()).catch(console.error);
+      finalizeDownload(id, title, finalFilename, localFile, sizeBytes);
     }
   });
 
@@ -228,6 +242,29 @@ function startDownload(id, url, _userId) {
       : err.message;
     dbUpdate(id, null, null, null, null, 'failed', errMsg, new Date().toISOString()).catch(console.error);
   });
+}
+
+// ── Post-download: upload to R2 or keep on disk ───────────────────────────────
+async function finalizeDownload(id, title, filename, localPath, sizeBytes) {
+  const now = new Date().toISOString();
+
+  if (R2_ENABLED) {
+    try {
+      dbUpdate(id, title, filename, 'mp4', sizeBytes, 'uploading', null, null).catch(console.error);
+      const r2Key = await uploadFile(localPath, filename, 'video/mp4');
+      // Delete local file after successful R2 upload to save disk space
+      try { if (fs.existsSync(localPath)) fs.unlinkSync(localPath); } catch {}
+      await dbUpdate(id, title, filename, 'mp4', sizeBytes, 'done', null, now, r2Key);
+      console.log(`[✓] Done (R2): ${filename}`);
+    } catch (err) {
+      console.error(`[R2] Upload failed, keeping local file: ${err.message}`);
+      // Fall back to local storage if R2 upload fails
+      await dbUpdate(id, title, filename, 'mp4', sizeBytes, 'done', null, now, null);
+    }
+  } else {
+    await dbUpdate(id, title, filename, 'mp4', sizeBytes, 'done', null, now, null);
+    console.log(`[✓] Done (local): ${filename}`);
+  }
 }
 
 // ── ffmpeg MP4 converter ──────────────────────────────────────────────────────

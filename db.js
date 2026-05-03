@@ -41,6 +41,8 @@ async function initDB() {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_downloads_user   ON downloads(user_id)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status)`);
+  // R2 migration — safe to run multiple times
+  await query(`ALTER TABLE downloads ADD COLUMN IF NOT EXISTS r2_key TEXT`);
   console.log('  PostgreSQL tables ready');
 }
 

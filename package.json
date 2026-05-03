@@ -11,6 +11,8 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
     "@clerk/clerk-js": "^6.8.0",
     "@clerk/express": "^2.1.11",
     "cors": "^2.8.5",
