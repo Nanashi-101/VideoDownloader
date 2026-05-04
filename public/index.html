@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en" class="scroll-smooth page-landing">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Viddly — Download Any Video, Anywhere</title>
+  <link rel="stylesheet" href="/css/global.css"/>
   <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -36,61 +37,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-  <style>
-    html { overflow-x: hidden; }
-    body { background: #080810; overflow-x: hidden; }
-    .gradient-text {
-      background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #818cf8 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .glass {
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    .orb {
-      position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      transition: all 0.3s ease;
-      position: relative; overflow: hidden;
-    }
-    .btn-primary::after {
-      content:''; position:absolute; inset:0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-      opacity:0; transition: opacity 0.3s;
-    }
-    .btn-primary:hover::after { opacity: 1; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(124,58,237,0.4); }
-    .btn-ghost {
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      transition: all 0.3s ease;
-    }
-    .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-2px); }
-    .feature-card {
-      background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
-      border: 1px solid rgba(255,255,255,0.07);
-      transition: all 0.4s ease;
-    }
-    .feature-card:hover {
-      border-color: rgba(124,58,237,0.4);
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(124,58,237,0.2);
-    }
-    .step-line::after {
-      content:''; position:absolute; top:24px; left:calc(50% + 40px);
-      width:calc(100% - 80px); height:1px;
-      background: linear-gradient(90deg, rgba(124,58,237,0.5), rgba(79,70,229,0.5));
-    }
-    .nav-scrolled { background: rgba(8,8,16,0.9) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #080810; }
-    ::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 3px; }
-    .mockup-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
-    .url-bar { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); }
-    .counter { font-variant-numeric: tabular-nums; }
-  </style>
 </head>
 <body class="font-sans text-white antialiased">
 
@@ -591,160 +537,6 @@
     </div>
   </footer>
 
-  <script>
-    gsap.registerPlugin(ScrollTrigger);
-
-    // Navbar scroll effect
-    window.addEventListener('scroll', () => {
-      document.getElementById('navbar').classList.toggle('nav-scrolled', window.scrollY > 40);
-    });
-
-    // Hero entrance
-    const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    heroTl
-      .from('#heroBadge',   { y: 30, opacity: 0, duration: 0.7 })
-      .from('#heroTitle',   { y: 40, opacity: 0, duration: 0.8 }, '-=0.4')
-      .from('#heroSub',     { y: 30, opacity: 0, duration: 0.7 }, '-=0.5')
-      .from('#heroCta',     { y: 25, opacity: 0, duration: 0.7 }, '-=0.5')
-      .from('#heroMockup',  { y: 50, opacity: 0, duration: 1, ease: 'power2.out' }, '-=0.4');
-
-    // Floating orbs
-    gsap.to('#orb1', { y: -30, x: 20,  duration: 8,  repeat: -1, yoyo: true, ease: 'sine.inOut' });
-    gsap.to('#orb2', { y: 25,  x: -15, duration: 10, repeat: -1, yoyo: true, ease: 'sine.inOut' });
-    gsap.to('#orb3', { y: -20, x: 10,  duration: 7,  repeat: -1, yoyo: true, ease: 'sine.inOut' });
-
-    // Stats counter
-    document.querySelectorAll('.counter').forEach(el => {
-      const target = parseInt(el.dataset.target);
-      ScrollTrigger.create({
-        trigger: el, start: 'top 85%', once: true,
-        onEnter: () => {
-          gsap.to({ val: 0 }, {
-            val: target, duration: 1.5, ease: 'power2.out',
-            onUpdate: function() { el.textContent = Math.round(this.targets()[0].val) + '+'; }
-          });
-        }
-      });
-    });
-
-    // Section badges
-    gsap.utils.toArray('.section-badge,.section-badge2,.about-badge').forEach(el => {
-      gsap.from(el, { y: 20, opacity: 0, duration: 0.6, ease: 'power2.out',
-        scrollTrigger: { trigger: el, start: 'top 85%', once: true }});
-    });
-
-    // Section titles
-    gsap.utils.toArray('.section-title,.section-title2,.about-title,.cta-title').forEach(el => {
-      gsap.from(el, { y: 40, opacity: 0, duration: 0.8, ease: 'power3.out',
-        scrollTrigger: { trigger: el, start: 'top 85%', once: true }});
-    });
-    gsap.utils.toArray('.section-sub,.about-text,.cta-sub').forEach(el => {
-      gsap.from(el, { y: 20, opacity: 0, duration: 0.7, ease: 'power2.out',
-        scrollTrigger: { trigger: el, start: 'top 88%', once: true }});
-    });
-
-    // Feature rows (slide in from sides)
-    gsap.utils.toArray('.feat-row').forEach((row, i) => {
-      const cols = row.querySelectorAll('.feat-text, .feat-mockup');
-      cols.forEach((col, j) => {
-        const fromLeft = (i % 2 === 0) ? j === 0 : j === 1;
-        gsap.from(col, {
-          x: fromLeft ? -60 : 60, opacity: 0, duration: 0.9, ease: 'power3.out',
-          delay: j * 0.12,
-          scrollTrigger: { trigger: row, start: 'top 80%', once: true }
-        });
-      });
-    });
-
-    // Feature cards stagger
-    gsap.from('.feat-card', {
-      y: 40, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out',
-      scrollTrigger: { trigger: '.feat-card', start: 'top 88%', once: true }
-    });
-
-    // Steps stagger
-    gsap.from('.step-card', {
-      y: 40, opacity: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out',
-      scrollTrigger: { trigger: '.step-card', start: 'top 85%', once: true }
-    });
-
-    // About visual
-    gsap.from('.about-visual > *', {
-      x: 40, opacity: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out',
-      scrollTrigger: { trigger: '.about-visual', start: 'top 80%', once: true }
-    });
-
-    // CTA card
-    gsap.from('.cta-card', {
-      scale: 0.95, opacity: 0, duration: 0.8, ease: 'power3.out',
-      scrollTrigger: { trigger: '.cta-card', start: 'top 85%', once: true }
-    });
-
-    // Mock player waveform
-    const waveEl = document.getElementById('waveform');
-    if (waveEl) {
-      [40,65,30,80,55,90,35,70,50,85,45,75,60,95,40,70,55,80,35,90,50,65,45,75,30,85,60,70,40,55,80,95,35,65,50,75,45,90,55,70].forEach(h => {
-        const b = document.createElement('div');
-        b.style.cssText = 'width:3px;flex-shrink:0;border-radius:1px;background:rgba(167,139,250,0.7);height:' + h + '%';
-        waveEl.appendChild(b);
-      });
-    }
-
-    // Mock player progress ticker
-    let mockPlaying = true, mockSec = 84;
-    const totalSec = 212;
-    const pBar = document.getElementById('progressBar');
-    const tEl  = document.getElementById('mockCurrentTime');
-    function fmtTime(s) { return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
-    setInterval(() => {
-      if (!mockPlaying) return;
-      mockSec = (mockSec + 1) % totalSec;
-      if (pBar) pBar.style.width = (mockSec / totalSec * 100) + '%';
-      if (tEl)  tEl.textContent  = fmtTime(mockSec);
-    }, 1000);
-
-    window.toggleMockPlayer = function() {
-      mockPlaying = !mockPlaying;
-      const sym = mockPlaying ? '⏸' : '▶';
-      const btn  = document.getElementById('playPauseBtn');
-      const icon = document.getElementById('playerIconText');
-      if (btn)  btn.textContent  = sym;
-      if (icon) icon.textContent = sym;
-    };
-
-    // Fade in pending row after 2.5s
-    setTimeout(() => {
-      const nr = document.querySelector('.mock-row-new');
-      if (nr) nr.style.opacity = '1';
-    }, 2500);
-  </script>
-  <!-- Clerk: swap nav/CTA buttons if user is already signed in -->
-  <script src="/clerk.browser.js" data-clerk-publishable-key="pk_test_YWRqdXN0ZWQtZXdlLTEuY2xlcmsuYWNjb3VudHMuZGV2JA"></script>
-  <script>
-    (async () => {
-      try {
-        await window.Clerk.load();
-        if (!window.Clerk.user) return; // not logged in — keep everything as-is
-
-        // ── Navbar: replace Sign in + Get started with one Dashboard button ──
-        document.getElementById('navAuthButtons').innerHTML =
-          '<a href="/dashboard" class="btn-primary text-sm font-semibold px-4 py-2 rounded-lg text-white whitespace-nowrap">Dashboard →</a>';
-
-        // ── Hero CTA: swap primary button ──
-        const heroPrimary = document.getElementById('heroCtaPrimary');
-        if (heroPrimary) {
-          heroPrimary.href        = '/dashboard';
-          heroPrimary.innerHTML   = 'Go to Dashboard <span>→</span>';
-        }
-
-        // ── Bottom CTA section ──
-        const bottomCta = document.getElementById('bottomCta');
-        if (bottomCta) {
-          bottomCta.href      = '/dashboard';
-          bottomCta.innerHTML = 'Go to Dashboard &rarr;';
-        }
-        const bottomSub = document.getElementById('bottomCtaSub');
-        if (bottomSub) bottomSub.style.display = 'none';
-
-      } catch (_) {
-        // Clerk failed silently — page st
+  <script src="/js/landing.js"></script>
+</body>
+</html>

@@ -1,1422 +1,1197 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard — Viddly</title>
-  <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            zinc: {
-              925: '#0d0d11',
-              950: '#09090b',
-            }
+<!doctype html>
+<html lang="en" class="page-dashboard">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — Viddly</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Inter", "sans-serif"] },
+            colors: {
+              zinc: {
+                925: "#0d0d11",
+                950: "#09090b",
+              },
+            },
+            keyframes: {
+              "fade-in": {
+                from: { opacity: "0", transform: "translateY(8px)" },
+                to: { opacity: "1", transform: "translateY(0)" },
+              },
+              "slide-in-r": {
+                from: { opacity: "0", transform: "translateX(20px)" },
+                to: { opacity: "1", transform: "translateX(0)" },
+              },
+              skeleton: {
+                "0%,100%": { opacity: ".5" },
+                "50%": { opacity: "1" },
+              },
+              "ping-once": {
+                "0%": { transform: "scale(1)", opacity: "1" },
+                "100%": { transform: "scale(2)", opacity: "0" },
+              },
+            },
+            animation: {
+              "fade-in": "fade-in .35s ease both",
+              "slide-in-r": "slide-in-r .35s ease both",
+              skeleton: "skeleton 1.5s ease-in-out infinite",
+              "ping-once": "ping-once .6s ease-out forwards",
+            },
           },
-          keyframes: {
-            'fade-in':    { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
-            'slide-in-r': { from: { opacity: '0', transform: 'translateX(20px)' }, to: { opacity: '1', transform: 'translateX(0)' } },
-            'skeleton':   { '0%,100%': { opacity: '.5' }, '50%': { opacity: '1' } },
-            'ping-once':  { '0%': { transform: 'scale(1)', opacity: '1' }, '100%': { transform: 'scale(2)', opacity: '0' } },
-          },
-          animation: {
-            'fade-in':    'fade-in .35s ease both',
-            'slide-in-r': 'slide-in-r .35s ease both',
-            'skeleton':   'skeleton 1.5s ease-in-out infinite',
-            'ping-once':  'ping-once .6s ease-out forwards',
-          }
-        }
-      }
-    }
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <style>
-    /* ── Shadcn-style design tokens ── */
-    :root {
-      --bg:          #09090b;
-      --surface:     #0d0d11;
-      --card:        #111117;
-      --card-hover:  #16161e;
-      --border:      #1f1f2e;
-      --border-muted:#18181f;
-      --input-bg:    #0d0d14;
-      --primary:     #7c3aed;
-      --primary-fg:  #fff;
-      --ring:        rgba(124,58,237,0.4);
-      --success:     #10b981;
-      --warning:     #f59e0b;
-      --danger:      #ef4444;
-      --info:        #3b82f6;
-      --text:        #fafafa;
-      --muted:       #a1a1aa;
-      --subtle:      #52525b;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #2d2d3d; border-radius: 99px; }
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="/css/global.css"/>
+  </head>
+  <body>
+    <!-- ── Sidebar backdrop (mobile) ── -->
+    <div
+      class="sidebar-backdrop"
+      id="sidebarBackdrop"
+      onclick="closeMobileSidebar()"
+    ></div>
 
-    /* ── Layout ── */
-    .app { display: flex; height: 100vh; overflow: hidden; }
-
-    /* ── Sidebar ── */
-    .sidebar {
-      width: 260px; flex-shrink: 0;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      transition: width 0.3s cubic-bezier(.4,0,.2,1);
-      overflow: hidden; position: relative; z-index: 20;
-    }
-    .sidebar.collapsed { width: 68px; }
-    .sidebar-logo { padding: 18px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-muted); min-height: 64px; }
-    .logo-icon { height: 32px; width: auto; flex-shrink: 0; }
-    .logo-text { font-weight: 800; font-size: 1rem; color: var(--text); white-space: nowrap; overflow: hidden; transition: opacity 0.2s, width 0.3s; }
-    .sidebar.collapsed .logo-text { opacity: 0; width: 0; }
-
-    .nav-section { padding: 10px 8px; flex: 1; overflow-y: auto; overflow-x: hidden; }
-    .nav-label { font-size: 0.65rem; font-weight: 700; color: var(--subtle); text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 10px 4px; white-space: nowrap; overflow: hidden; transition: opacity 0.2s; }
-    .sidebar.collapsed .nav-label { opacity: 0; }
-    .nav-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 10px; border-radius: 8px; margin-bottom: 2px;
-      color: var(--muted); font-size: 0.875rem; font-weight: 500;
-      cursor: pointer; transition: all 0.15s ease; white-space: nowrap; overflow: hidden;
-      position: relative; text-decoration: none;
-    }
-    .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-    .nav-item.active { background: rgba(124,58,237,0.12); color: #a78bfa; }
-    .nav-item.active::before { content:''; position:absolute; left:0; top:20%; bottom:20%; width:3px; background:#7c3aed; border-radius:0 3px 3px 0; }
-    .nav-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .nav-text { white-space: nowrap; transition: opacity 0.2s; }
-    .sidebar.collapsed .nav-text { opacity: 0; width: 0; overflow: hidden; }
-    .nav-badge { margin-left: auto; background: rgba(124,58,237,0.2); color: #a78bfa; font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 99px; flex-shrink: 0; }
-    .sidebar.collapsed .nav-badge { display: none; }
-
-    .sidebar-footer { padding: 12px 8px; border-top: 1px solid var(--border-muted); }
-    .user-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; transition: background 0.15s; overflow: hidden; cursor: pointer; }
-    .user-row:hover { background: rgba(255,255,255,0.05); }
-    .user-avatar { width: 32px; height: 32px; border-radius: 99px; background: linear-gradient(135deg,#7c3aed,#4f46e5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; overflow:hidden; }
-    .user-avatar img { width:100%; height:100%; object-fit:cover; border-radius:99px; }
-    .user-info { flex: 1; min-width: 0; transition: opacity 0.2s; }
-    .sidebar.collapsed .user-info { opacity: 0; width: 0; }
-    .user-name { font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-role { font-size: 0.7rem; color: var(--subtle); }
-    .logout-icon { flex-shrink: 0; transition: opacity 0.2s; }
-    .sidebar.collapsed .logout-icon { opacity: 0; width: 0; overflow: hidden; }
-
-    /* ── Main ── */
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-    /* ── Topbar ── */
-    .topbar {
-      height: 64px; display: flex; align-items: center; justify-content: space-between;
-      padding: 0 28px; border-bottom: 1px solid var(--border); flex-shrink: 0;
-      background: var(--surface);
-    }
-    .topbar-left { display: flex; align-items: center; gap: 12px; }
-    .collapse-btn { width: 32px; height: 32px; border-radius: 8px; background: none; border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-    .collapse-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
-    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted); }
-    .breadcrumb-sep { color: var(--subtle); }
-    .breadcrumb-current { color: var(--text); font-weight: 600; }
-    .topbar-right { display: flex; align-items: center; gap: 10px; }
-    .icon-btn { width: 36px; height: 36px; border-radius: 8px; background: none; border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-    .icon-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
-
-    /* ── Content ── */
-    .content { flex: 1; overflow-y: auto; padding: 28px; }
-
-    /* ── Cards ── */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
-    .card-hover { transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; }
-    .card-hover:hover { border-color: rgba(124,58,237,0.25); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-
-    /* ── Stats ── */
-    .stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-    .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--text); line-height: 1; }
-    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; font-weight: 500; }
-    .stat-trend { font-size: 0.72rem; font-weight: 600; padding: 2px 7px; border-radius: 99px; }
-
-    /* ── Input ── */
-    .url-input {
-      background: var(--input-bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 12px 16px; color: var(--text);
-      font-family: inherit; font-size: 0.9rem; flex: 1;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .url-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
-    .url-input::placeholder { color: var(--subtle); }
-    .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
-      border: none; border-radius: 10px; color: #fff;
-      font-family: inherit; font-size: 0.875rem; font-weight: 600;
-      padding: 12px 22px; cursor: pointer; white-space: nowrap;
-      transition: all 0.25s ease; position: relative; overflow: hidden;
-    }
-    .btn-primary::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0); transition:background 0.2s; }
-    .btn-primary:hover::after { background:rgba(255,255,255,0.08); }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,58,237,0.4); }
-    .btn-primary:active { transform: translateY(0); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-    .btn-secondary { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-family: inherit; font-size: 0.82rem; font-weight: 500; padding: 8px 14px; cursor: pointer; transition: all 0.15s; }
-    .btn-secondary:hover { background: rgba(255,255,255,0.09); color: var(--text); border-color: rgba(255,255,255,0.12); }
-
-    /* ── Table ── */
-    .tbl { width: 100%; border-collapse: collapse; }
-    .tbl th { text-align: left; font-size: 0.72rem; font-weight: 600; color: var(--subtle); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 12px 12px; }
-    .tbl td { padding: 13px 12px; vertical-align: middle; }
-    .tbl tbody tr { border-top: 1px solid var(--border-muted); transition: background 0.15s; }
-    .tbl tbody tr:hover { background: rgba(255,255,255,0.025); }
-
-    /* ── Status badges ── */
-    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; }
-    .badge-done    { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
-    .badge-dl      { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
-    .badge-pending { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
-    .badge-failed  { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
-    .dot { width: 6px; height: 6px; border-radius: 99px; display: inline-block; }
-    .dot-done    { background: #34d399; }
-    .dot-dl      { background: #60a5fa; animation: pulse 1.5s infinite; }
-    .dot-pending { background: #fbbf24; animation: pulse 2s infinite; }
-    .dot-failed  { background: #f87171; }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
-
-    /* ── Action buttons ── */
-    .act-btn { width: 30px; height: 30px; border-radius: 7px; background: transparent; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--subtle); transition: all 0.15s; }
-    .act-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-    .act-btn.play:hover { background: rgba(124,58,237,0.15); color: #a78bfa; }
-    .act-btn.save:hover { background: rgba(16,185,129,0.12); color: #34d399; }
-    .act-btn.del:hover  { background: rgba(239,68,68,0.12);  color: #f87171; }
-
-    /* ── Skeleton ── */
-    .skel { background: linear-gradient(90deg, #1c1c28 25%, #23232f 50%, #1c1c28 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-    /* ── Toast ── */
-    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-    .toast {
-      min-width: 280px; padding: 14px 16px; border-radius: 12px; pointer-events: all;
-      display: flex; align-items: center; gap: 10px; font-size: 0.875rem; font-weight: 500;
-      backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    }
-    .toast-success { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
-    .toast-error   { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: #f87171; }
-    .toast-info    { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; }
-    .toast-bar { height: 2px; border-radius: 99px; margin-top: 8px; transition: width linear; }
-    .toast-bar-success { background: #34d399; }
-    .toast-bar-error   { background: #f87171; }
-
-    /* ── Video Modal ── */
-    .modal-overlay { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,0); backdrop-filter: blur(0px); transition: all 0.3s ease; pointer-events: none; }
-    .modal-overlay.open { background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); pointer-events: all; }
-    .modal-box { background: #0d0d11; border: 1px solid #1f1f2e; border-radius: 20px; width: 100%; max-width: 920px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.7); transform: scale(0.95); opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
-    .modal-overlay.open .modal-box { transform: scale(1); opacity: 1; }
-    #videoPlayer { width: 100%; display: block; max-height: 68vh; background: #000; }
-    .modal-topbar { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .modal-btmbar { padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); }
-    .modal-close { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--muted); cursor: pointer; width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: all 0.15s; }
-    .modal-close:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #f87171; }
-
-    /* ── Tabs ── */
-    .tabs { display: flex; gap: 2px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
-    .tab-btn { flex: 1; padding: 7px 14px; border-radius: 7px; border: none; font-family: inherit; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.15s; background: transparent; color: var(--muted); }
-    .tab-btn.active { background: rgba(124,58,237,0.15); color: #a78bfa; }
-    .tab-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
-
-    /* ── Empty state ── */
-    .empty { text-align: center; padding: 60px 20px; }
-    .empty-icon { font-size: 3rem; margin-bottom: 16px; filter: grayscale(0.4); }
-    .empty-title { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-    .empty-sub { font-size: 0.85rem; color: var(--muted); }
-
-    /* ── Progress bar for downloading ── */
-    .progress-wrap { height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; margin-top: 6px; }
-    .progress-bar { height: 100%; background: linear-gradient(90deg,#7c3aed,#4f46e5); border-radius: 99px; animation: progress-indeterminate 1.5s ease-in-out infinite; }
-    @keyframes progress-indeterminate { 0% { transform: translateX(-100%); width: 50%; } 100% { transform: translateX(250%); width: 50%; } }
-
-    /* ── Glow effects ── */
-    .glow-purple { box-shadow: 0 0 24px rgba(124,58,237,0.25); }
-    .glow-green  { box-shadow: 0 0 24px rgba(16,185,129,0.2); }
-    .glow-blue   { box-shadow: 0 0 24px rgba(59,130,246,0.2); }
-    .glow-red    { box-shadow: 0 0 24px rgba(239,68,68,0.2); }
-
-    /* ── Mobile nav bar (bottom) ── */
-    .mobile-nav {
-      display: none;
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: var(--surface); border-top: 1px solid var(--border);
-      z-index: 50; padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-    }
-    .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; }
-    .mobile-nav-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      padding: 6px 10px; border-radius: 10px; background: none; border: none;
-      color: var(--subtle); cursor: pointer; font-size: 0.6rem; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.15s;
-      text-decoration: none; min-width: 56px;
-    }
-    .mobile-nav-btn.active { color: #a78bfa; }
-    .mobile-nav-btn svg { width: 22px; height: 22px; }
-    .mobile-nav-avatar { width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
-      background: linear-gradient(135deg,#7c3aed,#4f46e5); display:flex; align-items:center;
-      justify-content:center; font-weight:700; font-size:0.75rem; color:#fff; flex-shrink:0; }
-    .mobile-nav-avatar img { width:100%; height:100%; object-fit:cover; }
-
-    /* ── User bottom sheet ── */
-    .user-sheet-backdrop {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.65); z-index: 299;
-      backdrop-filter: blur(4px);
-    }
-    .user-sheet-backdrop.show { display: block; }
-    .user-sheet {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
-      background: var(--surface); border-top: 1px solid var(--border);
-      border-radius: 20px 20px 0 0;
-      padding: 12px 20px max(20px, env(safe-area-inset-bottom));
-      transform: translateY(100%);
-      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    .user-sheet.open { transform: translateY(0); }
-    .user-sheet-handle { width: 36px; height: 4px; background: var(--border);
-      border-radius: 99px; margin: 0 auto 18px; }
-    .user-sheet-avatar { width: 56px; height: 56px; border-radius: 50%; overflow: hidden;
-      background: linear-gradient(135deg,#7c3aed,#4f46e5);
-      display:flex; align-items:center; justify-content:center;
-      font-size:1.4rem; font-weight:700; color:#fff; margin: 0 auto 12px; }
-    .user-sheet-avatar img { width:100%; height:100%; object-fit:cover; }
-    .user-sheet-name { text-align:center; font-size:1rem; font-weight:700; color:var(--text); }
-    .user-sheet-email { text-align:center; font-size:0.8rem; color:var(--muted); margin-top:2px; }
-    .user-sheet-role { display:flex; align-items:center; justify-content:center; margin-top:8px; }
-    .user-sheet-divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
-    .user-sheet-action {
-      display:flex; align-items:center; gap:12px; padding:13px 16px;
-      border-radius:12px; background:none; border:none; width:100%; cursor:pointer;
-      color:var(--text); font-family:inherit; font-size:0.9rem; font-weight:500;
-      transition:background 0.15s; text-align:left;
-    }
-    .user-sheet-action:hover { background:rgba(255,255,255,0.06); }
-    .user-sheet-action.danger { color:#f87171; }
-    .user-sheet-action.danger:hover { background:rgba(239,68,68,0.1); }
-
-    /* ── Sidebar backdrop (mobile) ── */
-    .sidebar-backdrop {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6); z-index: 199;
-      backdrop-filter: blur(2px);
-    }
-    .sidebar-backdrop.show { display: block; }
-
-    /* ── Mobile table → cards ── */
-    @media (max-width: 768px) {
-      .tbl thead { display: none; }
-      .tbl, .tbl tbody { display: block; }
-      .tbl tbody tr {
-        display: block; background: var(--card); border: 1px solid var(--border);
-        border-radius: 12px; margin-bottom: 10px; padding: 12px 14px;
-        border-top: 1px solid var(--border) !important;
-      }
-      .tbl tbody tr:hover { background: var(--card-hover); }
-      .tbl td { display: flex; align-items: center; padding: 3px 0; font-size:0.82rem; }
-      .tbl td:first-child { margin-bottom: 6px; display:block; }
-      .tbl td:first-child div:first-child { font-size:0.88rem; white-space:normal !important; }
-      .tbl td:nth-child(3), .tbl td:nth-child(4) { display: none; }
-      .tbl td:last-child { justify-content: flex-end; margin-top: 8px; padding-top:8px; border-top:1px solid var(--border-muted); }
-    }
-
-    /* ═══════════════════════════════════
-       RESPONSIVE BREAKPOINTS
-    ═══════════════════════════════════ */
-
-    /* ── Tablet (≤ 1024px): collapse sidebar by default ── */
-    @media (max-width: 1024px) {
-      #statsGrid { grid-template-columns: repeat(2, 1fr) !important; }
-    }
-
-    /* ── Mobile (≤ 768px) ── */
-    @media (max-width: 768px) {
-      html, body { overflow: auto; height: auto; }
-
-      /* App: stack vertically, allow natural scroll */
-      .app { display: block; height: auto; overflow: visible; min-height: 100vh; }
-
-      /* Main: take full screen width */
-      .main { width: 100vw; display: flex; flex-direction: column; overflow: visible; }
-
-      /* Sidebar: completely hidden on mobile — bottom nav takes over */
-      .sidebar { display: none !important; }
-
-      /* Hide hamburger — no sidebar to toggle on mobile */
-      .collapse-btn { display: none !important; }
-
-      /* Topbar */
-      .topbar {
-        padding: 0 14px; height: 56px;
-        position: sticky; top: 0; z-index: 18;
-        width: 100%;
-      }
-      /* Hide the user dropdown name + chevron on mobile to save space */
-      .topbar-right > div:last-child > span { display: none; }
-      .topbar-right > div:last-child > svg { display: none; }
-      .breadcrumb { font-size: 0.78rem; }
-
-      /* Content */
-      .content { padding: 14px; padding-bottom: 88px; overflow: visible; }
-
-      /* Stats grid: 2×2 */
-      #statsGrid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-
-      /* Download card: stack input + button */
-      #dlCard .dl-row { flex-direction: column !important; }
-      #dlCard .dl-row .btn-primary { width: 100%; justify-content: center; }
-
-      /* Page header: stack title + button */
-      .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-      .page-header > button { align-self: flex-start; }
-
-      /* Admin stats grid: 2×2 */
-      .admin-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-
-      /* Table: hide less-important columns on small screens */
-      .tbl th:nth-child(3), .tbl td:nth-child(3),
-      .tbl th:nth-child(4), .tbl td:nth-child(4) { display: none; }
-
-      /* Modal: bottom sheet style */
-      .modal-overlay { padding: 0; align-items: flex-end; }
-      .modal-box { border-radius: 20px 20px 0 0; max-width: 100%; }
-      #videoPlayer { max-height: 50vh; }
-
-      /* Toast: full-width near bottom nav */
-      .toast-wrap { bottom: 76px; right: 10px; left: 10px; }
-      .toast { min-width: 0; width: 100%; }
-
-      /* Confirm modal: keep from hitting edges */
-      #confirmBox { margin: 0 16px; }
-
-      /* Show mobile bottom nav */
-      .mobile-nav { display: block; }
-    }
-
-    /* ── Small mobile (≤ 380px) ── */
-    @media (max-width: 380px) {
-      #statsGrid { grid-template-columns: 1fr 1fr !important; }
-      .stat-value { font-size: 1.35rem; }
-      .content { padding: 10px; padding-bottom: 80px; }
-      .topbar { padding: 0 10px; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- ── Sidebar backdrop (mobile) ── -->
-<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
-
-<!-- ── Mobile Bottom Nav ── -->
-<nav class="mobile-nav">
-  <div class="mobile-nav-inner">
-    <button class="mobile-nav-btn active" id="mnavDownloads" onclick="showPage('downloads');closeMobileSidebar()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Downloads
-    </button>
-    <button class="mobile-nav-btn" id="mnavHistory" onclick="showPage('history');closeMobileSidebar()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-      History
-    </button>
-    <button class="mobile-nav-btn" id="mnavAdmin" onclick="showPage('admin');closeMobileSidebar()" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Admin
-    </button>
-    <button class="mobile-nav-btn" id="mnavUser" onclick="openUserSheet()">
-      <div class="mobile-nav-avatar" id="mnavAvatar">?</div>
-      Me
-    </button>
-  </div>
-</nav>
-
-<!-- ── User bottom sheet ── -->
-<div class="user-sheet-backdrop" id="userSheetBackdrop" onclick="closeUserSheet()"></div>
-<div class="user-sheet" id="userSheet">
-  <div class="user-sheet-handle"></div>
-  <div class="user-sheet-avatar" id="sheetAvatar">?</div>
-  <div class="user-sheet-name" id="sheetName">Loading…</div>
-  <div class="user-sheet-email" id="sheetEmail"></div>
-  <div class="user-sheet-role">
-    <span id="sheetRoleBadge" style="font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(124,58,237,0.15);color:#a78bfa"></span>
-  </div>
-  <hr class="user-sheet-divider"/>
-  <button class="user-sheet-action" onclick="closeUserSheet();showPage('downloads')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Downloads
-  </button>
-  <button class="user-sheet-action" onclick="closeUserSheet();showPage('history')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-    History
-  </button>
-  <button class="user-sheet-action" id="sheetAdminBtn" onclick="closeUserSheet();showPage('admin')" style="display:none">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    Admin Panel
-  </button>
-  <hr class="user-sheet-divider" style="margin-top:4px"/>
-  <button class="user-sheet-action danger" onclick="logout()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    Sign out
-  </button>
-</div>
-
-<!-- ── Confirm Modal ── -->
-<div id="confirmOverlay" style="position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,0);backdrop-filter:blur(0px);pointer-events:none;transition:all 0.25s ease">
-  <div id="confirmBox" style="background:#0d0d11;border:1px solid #1f1f2e;border-radius:16px;width:100%;max-width:380px;padding:24px;box-shadow:0 32px 64px rgba(0,0,0,0.7);transform:scale(0.93) translateY(8px);opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1)">
-    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px">
-      <div id="confirmIconWrap" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
-        <svg id="confirmIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4h6v2"/></svg>
+    <!-- ── Mobile Bottom Nav ── -->
+    <nav class="mobile-nav">
+      <div class="mobile-nav-inner">
+        <button
+          class="mobile-nav-btn active"
+          id="mnavDownloads"
+          onclick="
+            showPage('downloads');
+            closeMobileSidebar();
+          "
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7,10 12,15 17,10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Downloads
+        </button>
+        <button
+          class="mobile-nav-btn"
+          id="mnavHistory"
+          onclick="
+            showPage('history');
+            closeMobileSidebar();
+          "
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12,6 12,12 16,14" />
+          </svg>
+          History
+        </button>
+        <button
+          class="mobile-nav-btn"
+          id="mnavAdmin"
+          onclick="
+            showPage('admin');
+            closeMobileSidebar();
+          "
+          style="display: none"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          Admin
+        </button>
+        <button class="mobile-nav-btn" id="mnavUser" onclick="openUserSheet()">
+          <div class="mobile-nav-avatar" id="mnavAvatar">?</div>
+          Me
+        </button>
       </div>
-      <div style="flex:1">
-        <div id="confirmTitle" style="font-size:0.95rem;font-weight:700;color:#fafafa;margin-bottom:5px">Delete download?</div>
-        <div id="confirmMsg" style="font-size:0.83rem;color:#a1a1aa;line-height:1.5">This will remove the record and delete the file from disk. This action cannot be undone.</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button id="confirmCancelBtn" onclick="resolveConfirm(false)" style="padding:9px 18px;border-radius:9px;border:1px solid #1f1f2e;background:rgba(255,255,255,0.04);color:#a1a1aa;font-family:inherit;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#fafafa'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='#a1a1aa'">Cancel</button>
-      <button id="confirmOkBtn" onclick="resolveConfirm(true)" style="padding:9px 18px;border-radius:9px;border:none;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)" onmouseover="this.style.background='#ef4444';this.style.color='#fff'" onmouseout="this.style.background='rgba(239,68,68,0.15)';this.style.color='#f87171'">Delete</button>
-    </div>
-  </div>
-</div>
+    </nav>
 
-<!-- ── Toast container ── -->
-<div class="toast-wrap" id="toastWrap"></div>
-
-<!-- ── Video Modal ── -->
-<div class="modal-overlay" id="videoModal" onclick="handleModalClick(event)">
-  <div class="modal-box" id="modalBox">
-    <div class="modal-topbar">
-      <div>
-        <div class="text-sm font-semibold text-white" id="videoTitle">Loading…</div>
-        <div class="text-xs mt-0.5" style="color:var(--subtle)" id="videoMeta"></div>
+    <!-- ── User bottom sheet ── -->
+    <div
+      class="user-sheet-backdrop"
+      id="userSheetBackdrop"
+      onclick="closeUserSheet()"
+    ></div>
+    <div class="user-sheet" id="userSheet">
+      <div class="user-sheet-handle"></div>
+      <div class="user-sheet-avatar" id="sheetAvatar">?</div>
+      <div class="user-sheet-name" id="sheetName">Loading…</div>
+      <div class="user-sheet-email" id="sheetEmail"></div>
+      <div class="user-sheet-role">
+        <span
+          id="sheetRoleBadge"
+          style="
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 99px;
+            background: rgba(124, 58, 237, 0.15);
+            color: #a78bfa;
+          "
+        ></span>
       </div>
-      <button class="modal-close" onclick="closePlayer()">✕</button>
-    </div>
-    <video id="videoPlayer" controls preload="metadata"></video>
-    <div class="modal-btmbar">
-      <div class="text-xs" style="color:var(--subtle)" id="videoHint">Use the controls to play, pause, and seek</div>
-      <button onclick="saveCurrentFile()" class="btn-primary" style="padding:8px 16px;font-size:0.8rem">
-        <svg style="display:inline;width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Save to device
+      <hr class="user-sheet-divider" />
+      <button
+        class="user-sheet-action"
+        onclick="
+          closeUserSheet();
+          showPage('downloads');
+        "
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          width="18"
+          height="18"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7,10 12,15 17,10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Downloads
+      </button>
+      <button
+        class="user-sheet-action"
+        onclick="
+          closeUserSheet();
+          showPage('history');
+        "
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          width="18"
+          height="18"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12,6 12,12 16,14" />
+        </svg>
+        History
+      </button>
+      <button
+        class="user-sheet-action"
+        id="sheetAdminBtn"
+        onclick="
+          closeUserSheet();
+          showPage('admin');
+        "
+        style="display: none"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          width="18"
+          height="18"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Admin Panel
+      </button>
+      <hr class="user-sheet-divider" style="margin-top: 4px" />
+      <button class="user-sheet-action danger" onclick="logout()">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          width="18"
+          height="18"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16,17 21,12 16,7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        Sign out
       </button>
     </div>
-  </div>
-</div>
 
-<!-- ── App Shell ── -->
-<div class="app">
-
-  <!-- ═══ SIDEBAR ═══ -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <img src="/logo.png" alt="Viddly" style="height:32px;width:auto;flex-shrink:0"/>
-      <span class="logo-text">Viddly</span>
-      <!-- Close button — mobile only -->
-      <button id="sidebarCloseBtn" onclick="closeMobileSidebar()" style="display:none;margin-left:auto;width:30px;height:30px;border-radius:7px;background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--muted);cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;line-height:1" title="Close menu">✕</button>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-label">Main</div>
-      <a class="nav-item active" id="navDownloads" onclick="showPage('downloads')" href="#">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </span>
-        <span class="nav-text">Downloads</span>
-        <span class="nav-badge" id="pendingBadge" style="display:none">0</span>
-      </a>
-      <a class="nav-item" id="navHistory" onclick="showPage('history')" href="#">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-        </span>
-        <span class="nav-text">History</span>
-      </a>
-      <a class="nav-item" id="navAdmin" onclick="showPage('admin')" href="#" style="display:none">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </span>
-        <span class="nav-text">Admin Panel</span>
-      </a>
-
-      <div class="nav-label" style="margin-top:12px">Quick actions</div>
-      <a class="nav-item" href="/" onclick="return confirmLeave()">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-        </span>
-        <span class="nav-text">Landing page</span>
-      </a>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="user-row" id="userRow">
-        <div class="user-avatar" id="userAvatar">?</div>
-        <div class="user-info">
-          <div class="user-name" id="userName">Loading…</div>
-          <div class="user-role" id="userRole">—</div>
-        </div>
-        <button class="logout-icon act-btn del" onclick="logout()" title="Sign out">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- ═══ MAIN ═══ -->
-  <div class="main">
-
-    <!-- Topbar -->
-    <header class="topbar">
-      <div class="topbar-left">
-        <button class="collapse-btn" onclick="toggleSidebar()" title="Toggle sidebar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <div class="breadcrumb">
-          <span>Viddly</span>
-          <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-current" id="breadcrumbCurrent">Downloads</span>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <button class="icon-btn" onclick="loadRecent();showToast('Refreshed','info')" title="Refresh">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23,4 23,10 17,10"/><path d="M20.5 16a9 9 0 1 1-2-8.9"/></svg>
-        </button>
-        <div style="width:1px;height:20px;background:var(--border)"></div>
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''" onclick="logout()">
-          <div class="user-avatar" id="topbarAvatar" style="width:26px;height:26px;font-size:0.7rem">?</div>
-          <span style="font-size:0.8rem;font-weight:500;color:var(--text)" id="topbarName">…</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="color:var(--subtle)"><polyline points="6,9 12,15 18,9"/></svg>
-        </div>
-      </div>
-    </header>
-
-    <!-- Content area -->
-    <div class="content" id="contentArea">
-
-      <!-- ══ DOWNLOADS PAGE ══ -->
-      <div id="pageDownloads">
-        <!-- Page header -->
-        <div class="page-header" style="margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between">
-          <div>
-            <h1 style="font-size:1.5rem;font-weight:800;color:var(--text)">Downloads</h1>
-            <p style="font-size:0.85rem;color:var(--muted);margin-top:3px">Paste any video URL to start downloading</p>
+    <!-- ── Confirm Modal ── -->
+    <div
+      id="confirmOverlay"
+      style="
+        position: fixed;
+        inset: 0;
+        z-index: 9500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0);
+        backdrop-filter: blur(0px);
+        pointer-events: none;
+        transition: all 0.25s ease;
+      "
+    >
+      <div
+        id="confirmBox"
+        style="
+          background: #0d0d11;
+          border: 1px solid #1f1f2e;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 380px;
+          padding: 24px;
+          box-shadow: 0 32px 64px rgba(0, 0, 0, 0.7);
+          transform: scale(0.93) translateY(8px);
+          opacity: 0;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        "
+      >
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 18px;
+          "
+        >
+          <div
+            id="confirmIconWrap"
+            style="
+              width: 40px;
+              height: 40px;
+              border-radius: 10px;
+              flex-shrink: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <svg
+              id="confirmIcon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              width="20"
+              height="20"
+            >
+              <polyline points="3,6 5,6 21,6" />
+              <path d="M19,6l-1,14H6L5,6" />
+              <path d="M10,11v6" />
+              <path d="M14,11v6" />
+              <path d="M9,6V4h6v2" />
+            </svg>
           </div>
-          <button class="btn-secondary" onclick="showPage('history')">
-            View all history →
+          <div style="flex: 1">
+            <div
+              id="confirmTitle"
+              style="
+                font-size: 0.95rem;
+                font-weight: 700;
+                color: #fafafa;
+                margin-bottom: 5px;
+              "
+            >
+              Delete download?
+            </div>
+            <div
+              id="confirmMsg"
+              style="font-size: 0.83rem; color: #a1a1aa; line-height: 1.5"
+            >
+              This will remove the record and delete the file from disk. This
+              action cannot be undone.
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end">
+          <button
+            id="confirmCancelBtn"
+            onclick="resolveConfirm(false)"
+            style="
+              padding: 9px 18px;
+              border-radius: 9px;
+              border: 1px solid #1f1f2e;
+              background: rgba(255, 255, 255, 0.04);
+              color: #a1a1aa;
+              font-family: inherit;
+              font-size: 0.85rem;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.15s;
+            "
+            onmouseover="
+              this.style.background = 'rgba(255,255,255,0.08)';
+              this.style.color = '#fafafa';
+            "
+            onmouseout="
+              this.style.background = 'rgba(255,255,255,0.04)';
+              this.style.color = '#a1a1aa';
+            "
+          >
+            Cancel
+          </button>
+          <button
+            id="confirmOkBtn"
+            onclick="resolveConfirm(true)"
+            style="
+              padding: 9px 18px;
+              border-radius: 9px;
+              border: none;
+              font-family: inherit;
+              font-size: 0.85rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s;
+              background: rgba(239, 68, 68, 0.15);
+              color: #f87171;
+              border: 1px solid rgba(239, 68, 68, 0.3);
+            "
+            onmouseover="
+              this.style.background = '#ef4444';
+              this.style.color = '#fff';
+            "
+            onmouseout="
+              this.style.background = 'rgba(239,68,68,0.15)';
+              this.style.color = '#f87171';
+            "
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Toast container ── -->
+    <div class="toast-wrap" id="toastWrap"></div>
+
+    <!-- ── Video Modal ── -->
+    <div
+      class="modal-overlay"
+      id="videoModal"
+      onclick="handleModalClick(event)"
+    >
+      <div class="modal-box" id="modalBox">
+        <div class="modal-topbar">
+          <div>
+            <div class="text-sm font-semibold text-white" id="videoTitle">
+              Loading…
+            </div>
+            <div
+              class="text-xs mt-0.5"
+              style="color: var(--subtle)"
+              id="videoMeta"
+            ></div>
+          </div>
+          <button class="modal-close" onclick="closePlayer()">✕</button>
+        </div>
+        <video id="videoPlayer" controls preload="metadata"></video>
+        <div class="modal-btmbar">
+          <div class="text-xs" style="color: var(--subtle)" id="videoHint">
+            Use the controls to play, pause, and seek
+          </div>
+          <button
+            onclick="saveCurrentFile()"
+            class="btn-primary"
+            style="padding: 8px 16px; font-size: 0.8rem"
+          >
+            <svg
+              style="
+                display: inline;
+                width: 14px;
+                height: 14px;
+                margin-right: 5px;
+                vertical-align: middle;
+              "
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7,10 12,15 17,10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Save to device
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── App Shell ── -->
+    <div class="app">
+      <!-- ═══ SIDEBAR ═══ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+          <img
+            src="/logo.png"
+            alt="Viddly"
+            style="height: 32px; width: auto; flex-shrink: 0"
+          />
+          <span class="logo-text">Viddly</span>
+          <!-- Close button — mobile only -->
+          <button
+            id="sidebarCloseBtn"
+            onclick="closeMobileSidebar()"
+            style="
+              display: none;
+              margin-left: auto;
+              width: 30px;
+              height: 30px;
+              border-radius: 7px;
+              background: rgba(255, 255, 255, 0.07);
+              border: 1px solid var(--border);
+              color: var(--muted);
+              cursor: pointer;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              font-size: 1rem;
+              line-height: 1;
+            "
+            title="Close menu"
+          >
+            ✕
           </button>
         </div>
 
-        <!-- Stats row -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px" id="statsGrid">
-          <!-- Skeleton loading -->
-          <div class="card card-hover" style="padding:18px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="nav-section">
+          <div class="nav-label">Main</div>
+          <a
+            class="nav-item active"
+            id="navDownloads"
+            onclick="showPage('downloads')"
+            href="#"
+          >
+            <span class="nav-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="18"
+                height="18"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7,10 12,15 17,10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </span>
+            <span class="nav-text">Downloads</span>
+            <span class="nav-badge" id="pendingBadge" style="display: none"
+              >0</span
+            >
+          </a>
+          <a
+            class="nav-item"
+            id="navHistory"
+            onclick="showPage('history')"
+            href="#"
+          >
+            <span class="nav-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="18"
+                height="18"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12,6 12,12 16,14" />
+              </svg>
+            </span>
+            <span class="nav-text">History</span>
+          </a>
+          <a
+            class="nav-item"
+            id="navAdmin"
+            onclick="showPage('admin')"
+            href="#"
+            style="display: none"
+          >
+            <span class="nav-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="18"
+                height="18"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </span>
+            <span class="nav-text">Admin Panel</span>
+          </a>
+
+          <div class="nav-label" style="margin-top: 12px">Quick actions</div>
+          <a class="nav-item" href="/" onclick="return confirmLeave();">
+            <span class="nav-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="18"
+                height="18"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9,22 9,12 15,12 15,22" />
+              </svg>
+            </span>
+            <span class="nav-text">Landing page</span>
+          </a>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="user-row" id="userRow">
+            <div class="user-avatar" id="userAvatar">?</div>
+            <div class="user-info">
+              <div class="user-name" id="userName">Loading…</div>
+              <div class="user-role" id="userRole">—</div>
+            </div>
+            <button
+              class="logout-icon act-btn del"
+              onclick="logout()"
+              title="Sign out"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="16"
+                height="16"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16,17 21,12 16,7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ═══ MAIN ═══ -->
+      <div class="main">
+        <!-- Topbar -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <button
+              class="collapse-btn"
+              onclick="toggleSidebar()"
+              title="Toggle sidebar"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="16"
+                height="16"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <div class="breadcrumb">
+              <span>Viddly</span>
+              <span class="breadcrumb-sep">/</span>
+              <span class="breadcrumb-current" id="breadcrumbCurrent"
+                >Downloads</span
+              >
+            </div>
+          </div>
+          <div class="topbar-right">
+            <button
+              class="icon-btn"
+              onclick="
+                loadRecent();
+                showToast('Refreshed', 'info');
+              "
+              title="Refresh"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="16"
+                height="16"
+              >
+                <polyline points="23,4 23,10 17,10" />
+                <path d="M20.5 16a9 9 0 1 1-2-8.9" />
+              </svg>
+            </button>
+            <div
+              style="width: 1px; height: 20px; background: var(--border)"
+            ></div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 5px 12px;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+                cursor: pointer;
+                transition: background 0.15s;
+              "
+              onmouseover="this.style.background = 'rgba(255,255,255,0.05)'"
+              onmouseout="this.style.background = ''"
+              onclick="logout()"
+            >
+              <div
+                class="user-avatar"
+                id="topbarAvatar"
+                style="width: 26px; height: 26px; font-size: 0.7rem"
+              >
+                ?
+              </div>
+              <span
+                style="font-size: 0.8rem; font-weight: 500; color: var(--text)"
+                id="topbarName"
+                >…</span
+              >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="12"
+                height="12"
+                style="color: var(--subtle)"
+              >
+                <polyline points="6,9 12,15 18,9" />
+              </svg>
+            </div>
+          </div>
+        </header>
+
+        <!-- Content area -->
+        <div class="content" id="contentArea">
+          <!-- ══ DOWNLOADS PAGE ══ -->
+          <div id="pageDownloads">
+            <!-- Page header -->
+            <div
+              class="page-header"
+              style="
+                margin-bottom: 24px;
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+              "
+            >
               <div>
-                <div class="stat-value" id="st-total">—</div>
+                <h1
+                  style="
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: var(--text);
+                  "
+                >
+                  Downloads
+                </h1>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    color: var(--muted);
+                    margin-top: 3px;
+                  "
+                >
+                  Paste any video URL to start downloading
+                </p>
+              </div>
+              <button class="btn-secondary" onclick="showPage('history')">
+                View all history →
+              </button>
+            </div>
+
+            <!-- Stats row -->
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 14px;
+                margin-bottom: 24px;
+              "
+              id="statsGrid"
+            >
+              <!-- Skeleton loading -->
+              <div class="card card-hover" style="padding: 18px">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                  "
+                >
+                  <div>
+                    <div class="stat-value" id="st-total">—</div>
+                    <div class="stat-label">Total Downloads</div>
+                  </div>
+                  <div
+                    class="stat-icon"
+                    style="background: rgba(124, 58, 237, 0.12)"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#a78bfa"
+                      stroke-width="2"
+                      width="20"
+                      height="20"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7,10 12,15 17,10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="card card-hover" style="padding: 18px">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                  "
+                >
+                  <div>
+                    <div class="stat-value" id="st-done" style="color: #34d399">
+                      —
+                    </div>
+                    <div class="stat-label">Completed</div>
+                  </div>
+                  <div
+                    class="stat-icon"
+                    style="background: rgba(16, 185, 129, 0.1)"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#34d399"
+                      stroke-width="2"
+                      width="20"
+                      height="20"
+                    >
+                      <polyline points="20,6 9,17 4,12" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="card card-hover" style="padding: 18px">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                  "
+                >
+                  <div>
+                    <div
+                      class="stat-value"
+                      id="st-active"
+                      style="color: #60a5fa"
+                    >
+                      —
+                    </div>
+                    <div class="stat-label">In Progress</div>
+                  </div>
+                  <div
+                    class="stat-icon"
+                    style="background: rgba(59, 130, 246, 0.1)"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#60a5fa"
+                      stroke-width="2"
+                      width="20"
+                      height="20"
+                    >
+                      <polyline points="23,4 23,10 17,10" />
+                      <path d="M20.5 16a9 9 0 1 1-2-8.9" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="card card-hover" style="padding: 18px">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                  "
+                >
+                  <div>
+                    <div
+                      class="stat-value"
+                      id="st-failed"
+                      style="color: #f87171"
+                    >
+                      —
+                    </div>
+                    <div class="stat-label">Failed</div>
+                  </div>
+                  <div
+                    class="stat-icon"
+                    style="background: rgba(239, 68, 68, 0.1)"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#f87171"
+                      stroke-width="2"
+                      width="20"
+                      height="20"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Download input card -->
+            <div
+              class="card"
+              style="padding: 24px; margin-bottom: 24px"
+              id="dlCard"
+            >
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  margin-bottom: 14px;
+                "
+              >
+                <div
+                  style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: #34d399;
+                    box-shadow: 0 0 8px #34d399;
+                  "
+                ></div>
+                <span
+                  style="
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: var(--muted);
+                  "
+                  >NEW DOWNLOAD</span
+                >
+              </div>
+              <div class="dl-row" style="display: flex; gap: 10px">
+                <div
+                  style="
+                    position: relative;
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                  "
+                >
+                  <svg
+                    style="
+                      position: absolute;
+                      left: 14px;
+                      color: var(--subtle);
+                      flex-shrink: 0;
+                    "
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    width="16"
+                    height="16"
+                  >
+                    <path
+                      d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                    />
+                    <path
+                      d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                    />
+                  </svg>
+                  <input
+                    class="url-input"
+                    id="urlInput"
+                    type="url"
+                    placeholder="Paste a YouTube, Vimeo, TikTok or any video URL…"
+                    style="padding-left: 40px"
+                  />
+                </div>
+                <button
+                  class="btn-primary"
+                  id="dlBtn"
+                  onclick="startDownload()"
+                >
+                  <svg
+                    style="
+                      display: inline;
+                      width: 14px;
+                      height: 14px;
+                      margin-right: 6px;
+                      vertical-align: middle;
+                    "
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <polyline points="19,12 12,19 5,12" />
+                  </svg>
+                  Download
+                </button>
+              </div>
+              <div
+                id="dlFeedback"
+                style="
+                  margin-top: 14px;
+                  font-size: 0.78rem;
+                  color: var(--subtle);
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                "
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  width="12"
+                  height="12"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                Supports YouTube · Vimeo · TikTok · Twitter/X · Reddit ·
+                Dailymotion · 1000+ more
+              </div>
+            </div>
+
+            <!-- Recent downloads -->
+            <div class="card" style="padding: 20px">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  margin-bottom: 18px;
+                "
+              >
+                <h3
+                  style="
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    color: var(--text);
+                  "
+                >
+                  Recent downloads
+                </h3>
+                <button
+                  class="btn-secondary"
+                  onclick="loadRecent()"
+                  style="padding: 5px 12px; font-size: 0.75rem"
+                >
+                  ↻ Refresh
+                </button>
+              </div>
+              <div id="recentContainer"></div>
+            </div>
+          </div>
+
+          <!-- ══ HISTORY PAGE ══ -->
+          <div id="pageHistory" style="display: none">
+            <div
+              class="page-header"
+              style="
+                margin-bottom: 24px;
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+              "
+            >
+              <div>
+                <h1
+                  style="
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: var(--text);
+                  "
+                >
+                  History
+                </h1>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    color: var(--muted);
+                    margin-top: 3px;
+                  "
+                >
+                  All your downloads across all sessions
+                </p>
+              </div>
+              <button
+                class="btn-primary"
+                onclick="loadHistory()"
+                style="padding: 9px 18px; font-size: 0.8rem"
+              >
+                ↻ Refresh
+              </button>
+            </div>
+            <div class="card" style="padding: 20px">
+              <div id="historyContainer">
+                <div class="empty">
+                  <div class="empty-icon">⏳</div>
+                  <div class="empty-title">Loading…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ ADMIN PAGE ══ -->
+          <div id="pageAdmin" style="display: none">
+            <div style="margin-bottom: 24px">
+              <h1
+                style="font-size: 1.5rem; font-weight: 800; color: var(--text)"
+              >
+                Admin Panel
+              </h1>
+              <p
+                style="font-size: 0.85rem; color: var(--muted); margin-top: 3px"
+              >
+                Manage users and monitor all downloads
+              </p>
+            </div>
+
+            <!-- Admin stats -->
+            <div
+              class="admin-stats-grid"
+              style="
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 14px;
+                margin-bottom: 24px;
+              "
+            >
+              <div class="card" style="padding: 18px">
+                <div class="stat-value" id="adm-users">—</div>
+                <div class="stat-label">Total Users</div>
+              </div>
+              <div class="card" style="padding: 18px">
+                <div class="stat-value" id="adm-total">—</div>
                 <div class="stat-label">Total Downloads</div>
               </div>
-              <div class="stat-icon" style="background:rgba(124,58,237,0.12)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" width="20" height="20"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              </div>
-            </div>
-          </div>
-          <div class="card card-hover" style="padding:18px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start">
-              <div>
-                <div class="stat-value" id="st-done" style="color:#34d399">—</div>
+              <div class="card" style="padding: 18px">
+                <div class="stat-value" style="color: #34d399" id="adm-done">
+                  —
+                </div>
                 <div class="stat-label">Completed</div>
               </div>
-              <div class="stat-icon" style="background:rgba(16,185,129,0.1)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" width="20" height="20"><polyline points="20,6 9,17 4,12"/></svg>
-              </div>
-            </div>
-          </div>
-          <div class="card card-hover" style="padding:18px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start">
-              <div>
-                <div class="stat-value" id="st-active" style="color:#60a5fa">—</div>
-                <div class="stat-label">In Progress</div>
-              </div>
-              <div class="stat-icon" style="background:rgba(59,130,246,0.1)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" width="20" height="20"><polyline points="23,4 23,10 17,10"/><path d="M20.5 16a9 9 0 1 1-2-8.9"/></svg>
-              </div>
-            </div>
-          </div>
-          <div class="card card-hover" style="padding:18px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start">
-              <div>
-                <div class="stat-value" id="st-failed" style="color:#f87171">—</div>
+              <div class="card" style="padding: 18px">
+                <div class="stat-value" style="color: #f87171" id="adm-fail">
+                  —
+                </div>
                 <div class="stat-label">Failed</div>
               </div>
-              <div class="stat-icon" style="background:rgba(239,68,68,0.1)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+
+            <div style="margin-bottom: 16px">
+              <div class="tabs" style="width: fit-content">
+                <button
+                  class="tab-btn active"
+                  id="tabUsers"
+                  onclick="switchAdminTab('users')"
+                >
+                  <svg
+                    style="
+                      display: inline;
+                      width: 13px;
+                      height: 13px;
+                      margin-right: 5px;
+                      vertical-align: middle;
+                    "
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  Users
+                </button>
+                <button
+                  class="tab-btn"
+                  id="tabAllDl"
+                  onclick="switchAdminTab('allDl')"
+                >
+                  <svg
+                    style="
+                      display: inline;
+                      width: 13px;
+                      height: 13px;
+                      margin-right: 5px;
+                      vertical-align: middle;
+                    "
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7,10 12,15 17,10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  All Downloads
+                </button>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Download input card -->
-        <div class="card" style="padding:20px;margin-bottom:24px" id="dlCard">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <div style="width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399"></div>
-            <span style="font-size:0.8rem;font-weight:600;color:var(--muted)">NEW DOWNLOAD</span>
-          </div>
-          <div class="dl-row" style="display:flex;gap:10px">
-            <div style="position:relative;flex:1;display:flex;align-items:center">
-              <svg style="position:absolute;left:14px;color:var(--subtle);flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              <input class="url-input" id="urlInput" type="url" placeholder="Paste a YouTube, Vimeo, TikTok or any video URL…" style="padding-left:40px"/>
+            <div class="card" style="padding: 20px">
+              <div id="adminUsers"></div>
+              <div id="adminAllDl" style="display: none"></div>
             </div>
-            <button class="btn-primary" id="dlBtn" onclick="startDownload()">
-              <svg style="display:inline;width:14px;height:14px;margin-right:6px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,19 5,12"/></svg>
-              Download
-            </button>
-          </div>
-          <div id="dlFeedback" style="margin-top:10px;font-size:0.78rem;color:var(--subtle);display:flex;align-items:center;gap:6px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Supports YouTube · Vimeo · TikTok · Twitter/X · Reddit · Dailymotion · 1000+ more
           </div>
         </div>
-
-        <!-- Recent downloads -->
-        <div class="card" style="padding:20px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-            <h3 style="font-size:0.9rem;font-weight:700;color:var(--text)">Recent downloads</h3>
-            <button class="btn-secondary" onclick="loadRecent()" style="padding:5px 12px;font-size:0.75rem">↻ Refresh</button>
-          </div>
-          <div id="recentContainer"></div>
-        </div>
+        <!-- /content -->
       </div>
-
-      <!-- ══ HISTORY PAGE ══ -->
-      <div id="pageHistory" style="display:none">
-        <div class="page-header" style="margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between">
-          <div>
-            <h1 style="font-size:1.5rem;font-weight:800;color:var(--text)">History</h1>
-            <p style="font-size:0.85rem;color:var(--muted);margin-top:3px">All your downloads across all sessions</p>
-          </div>
-          <button class="btn-primary" onclick="loadHistory()" style="padding:9px 18px;font-size:0.8rem">↻ Refresh</button>
-        </div>
-        <div class="card" style="padding:20px">
-          <div id="historyContainer"><div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div></div>
-        </div>
-      </div>
-
-      <!-- ══ ADMIN PAGE ══ -->
-      <div id="pageAdmin" style="display:none">
-        <div style="margin-bottom:24px">
-          <h1 style="font-size:1.5rem;font-weight:800;color:var(--text)">Admin Panel</h1>
-          <p style="font-size:0.85rem;color:var(--muted);margin-top:3px">Manage users and monitor all downloads</p>
-        </div>
-
-        <!-- Admin stats -->
-        <div class="admin-stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
-          <div class="card" style="padding:18px"><div class="stat-value" id="adm-users">—</div><div class="stat-label">Total Users</div></div>
-          <div class="card" style="padding:18px"><div class="stat-value" id="adm-total">—</div><div class="stat-label">Total Downloads</div></div>
-          <div class="card" style="padding:18px"><div class="stat-value" style="color:#34d399" id="adm-done">—</div><div class="stat-label">Completed</div></div>
-          <div class="card" style="padding:18px"><div class="stat-value" style="color:#f87171" id="adm-fail">—</div><div class="stat-label">Failed</div></div>
-        </div>
-
-        <div style="margin-bottom:16px">
-          <div class="tabs" style="width:fit-content">
-            <button class="tab-btn active" id="tabUsers" onclick="switchAdminTab('users')">
-              <svg style="display:inline;width:13px;height:13px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              Users
-            </button>
-            <button class="tab-btn" id="tabAllDl" onclick="switchAdminTab('allDl')">
-              <svg style="display:inline;width:13px;height:13px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              All Downloads
-            </button>
-          </div>
-        </div>
-
-        <div class="card" style="padding:20px">
-          <div id="adminUsers"></div>
-          <div id="adminAllDl" style="display:none"></div>
-        </div>
-      </div>
-
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /app -->
-
-<script src="/clerk.browser.js" data-clerk-publishable-key="pk_test_YWRqdXN0ZWQtZXdlLTEuY2xlcmsuYWNjb3VudHMuZGV2JA" crossorigin="anonymous"></script>
-<script>
-// ═══════════════════════════════════════════════════════════════
-// State
-// ═══════════════════════════════════════════════════════════════
-let currentUser = null;
-let pollTimer   = null;
-let activeVideoId = null;
-let sidebarCollapsed = false;
-
-const getToken = async () => {
-  if (window.__clerk?.session) return await window.__clerk.session.getToken();
-  return '';
-};
-const logout = async () => {
-  await window.__clerk?.signOut();
-  window.location.href = '/login';
-};
-const confirmLeave = async () => {
-  return await showConfirm({ title: 'Leave dashboard?', message: 'You will be taken to the Viddly landing page.', okLabel: 'Go to home', okStyle: 'primary' });
-};
-
-async function api(path, opts = {}) {
-  const token = await getToken();
-  const res = await fetch(path, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...(opts.headers || {}) }
-  });
-  if (res.status === 401) logout();
-  return res;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Init
-// ═══════════════════════════════════════════════════════════════
-async function init() {
-  const r = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${await getToken()}` } });
-  if (!r.ok) { await logout(); return; }
-  currentUser = await r.json();
-
-  const name     = currentUser.displayName || currentUser.username || 'User';
-  const initials = name[0].toUpperCase();
-
-  // Avatar: photo if available, else initials
-  function renderAvatar(el, size) {
-    if (currentUser.imageUrl) {
-      el.innerHTML = `<img src="${currentUser.imageUrl}" alt="${name}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:99px;display:block"/>`;
-      el.style.background = 'none';
-    } else {
-      el.textContent = initials;
-    }
-  }
-  renderAvatar(document.getElementById('userAvatar'),   32);
-  renderAvatar(document.getElementById('topbarAvatar'), 26);
-
-  // Mobile nav avatar
-  const mnavAv = document.getElementById('mnavAvatar');
-  if (currentUser.imageUrl) {
-    mnavAv.innerHTML = `<img src="${currentUser.imageUrl}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block"/>`;
-    mnavAv.style.background = 'none';
-  } else {
-    mnavAv.textContent = initials;
-  }
-
-  // User bottom sheet
-  const sheetAv = document.getElementById('sheetAvatar');
-  if (currentUser.imageUrl) {
-    sheetAv.innerHTML = `<img src="${currentUser.imageUrl}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block"/>`;
-    sheetAv.style.background = 'none';
-  } else {
-    sheetAv.textContent = initials;
-  }
-  document.getElementById('sheetName').textContent  = name;
-  document.getElementById('sheetEmail').textContent = currentUser.email || '';
-  const roleBadge = document.getElementById('sheetRoleBadge');
-  if (currentUser.role === 'admin') {
-    roleBadge.textContent = '👑 Admin';
-    roleBadge.style.background = 'rgba(124,58,237,0.2)';
-    roleBadge.style.color = '#a78bfa';
-  } else {
-    roleBadge.textContent = '👤 User';
-    roleBadge.style.background = 'rgba(59,130,246,0.12)';
-    roleBadge.style.color = '#60a5fa';
-  }
-
-  document.getElementById('userName').textContent      = name;
-  document.getElementById('topbarName').textContent    = name;
-  document.getElementById('userRole').textContent      = currentUser.role === 'admin' ? '👑 Admin' : '👤 User';
-
-  if (currentUser.role === 'admin') {
-    document.getElementById('navAdmin').style.display = 'flex';
-    document.getElementById('mnavAdmin').style.display = 'flex';
-    document.getElementById('sheetAdminBtn').style.display = 'flex';
-  }
-
-  loadStats();
-  loadRecent();
-  startPolling();
-  runEntranceAnim();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Entrance animation
-// ═══════════════════════════════════════════════════════════════
-function runEntranceAnim() {
-  const isMobile = window.innerWidth <= 768;
-  // Don't animate sidebar on mobile — CSS keeps it off-screen; GSAP would override that
-  if (!isMobile) {
-    gsap.from('.sidebar', { x: -20, opacity: 0, duration: 0.5, ease: 'power3.out' });
-  }
-  gsap.from('.topbar',  { y: -10, opacity: 0, duration: 0.4, ease: 'power2.out', delay: isMobile ? 0 : 0.1 });
-  gsap.from('#statsGrid > *', { y: 24, opacity: 0, duration: 0.5, stagger: 0.07, ease: 'power3.out', delay: isMobile ? 0.1 : 0.2 });
-  gsap.from('#dlCard',  { y: 16, opacity: 0, duration: 0.45, ease: 'power2.out', delay: isMobile ? 0.2 : 0.45 });
-  gsap.from('#recentContainer', { y: 14, opacity: 0, duration: 0.4, ease: 'power2.out', delay: isMobile ? 0.3 : 0.55 });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Sidebar
-// ═══════════════════════════════════════════════════════════════
-function toggleSidebar() {
-  if (window.innerWidth <= 768) {
-    const sidebar   = document.getElementById('sidebar');
-    const backdrop  = document.getElementById('sidebarBackdrop');
-    const isOpen    = sidebar.classList.contains('mobile-open');
-    sidebar.classList.toggle('mobile-open', !isOpen);
-    backdrop.classList.toggle('show', !isOpen);
-    document.body.style.overflow = isOpen ? '' : 'hidden';
-  } else {
-    sidebarCollapsed = !sidebarCollapsed;
-    document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
-  }
-}
-
-function closeMobileSidebar() {
-  document.getElementById('sidebar')?.classList.remove('mobile-open');
-  document.getElementById('sidebarBackdrop')?.classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-// ═══════════════════════════════════════════════════════════════
-// User bottom sheet (mobile)
-// ═══════════════════════════════════════════════════════════════
-function openUserSheet() {
-  document.getElementById('userSheetBackdrop').classList.add('show');
-  document.getElementById('userSheet').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeUserSheet() {
-  document.getElementById('userSheetBackdrop').classList.remove('show');
-  document.getElementById('userSheet').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Page navigation
-// ═══════════════════════════════════════════════════════════════
-const pageMap = {
-  downloads: { page: 'pageDownloads', nav: 'navDownloads', label: 'Downloads'  },
-  history:   { page: 'pageHistory',   nav: 'navHistory',   label: 'History'    },
-  admin:     { page: 'pageAdmin',     nav: 'navAdmin',      label: 'Admin'      },
-};
-
-function showPage(name) {
-  Object.values(pageMap).forEach(({ page, nav }) => {
-    document.getElementById(page).style.display = 'none';
-    document.getElementById(nav)?.classList.remove('active');
-  });
-  const { page, nav, label } = pageMap[name];
-  const el = document.getElementById(page);
-  el.style.display = 'block';
-  document.getElementById(nav)?.classList.add('active');
-  document.getElementById('breadcrumbCurrent').textContent = label;
-
-  // Sync mobile bottom nav
-  ['mnavDownloads','mnavHistory','mnavAdmin'].forEach(id => {
-    document.getElementById(id)?.classList.remove('active');
-  });
-  const mnavMap = { downloads: 'mnavDownloads', history: 'mnavHistory', admin: 'mnavAdmin' };
-  document.getElementById(mnavMap[name])?.classList.add('active');
-
-  gsap.from(el, { y: 12, opacity: 0, duration: 0.3, ease: 'power2.out' });
-
-  if (name === 'history') loadHistory();
-  if (name === 'admin')   loadAdmin();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Stats
-// ═══════════════════════════════════════════════════════════════
-async function loadStats() {
-  const res = await api('/api/downloads');
-  if (!res || !res.ok) return;
-  const data = await res.json();
-
-  const total  = data.length;
-  const done   = data.filter(d => d.status === 'done').length;
-  const active = data.filter(d => d.status === 'downloading' || d.status === 'pending' || d.status === 'uploading').length;
-  const failed = data.filter(d => d.status === 'failed').length;
-
-  animateCount('st-total',  total);
-  animateCount('st-done',   done);
-  animateCount('st-active', active);
-  animateCount('st-failed', failed);
-
-  // Pending badge in sidebar
-  const badge = document.getElementById('pendingBadge');
-  if (active > 0) { badge.textContent = active; badge.style.display = 'inline'; }
-  else { badge.style.display = 'none'; }
-}
-
-function animateCount(id, target) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const current = parseInt(el.textContent) || 0;
-  gsap.to({ val: current }, { val: target, duration: 0.8, ease: 'power2.out',
-    onUpdate: function() { el.textContent = Math.round(this.targets()[0].val); }
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Download
-// ═══════════════════════════════════════════════════════════════
-async function startDownload() {
-  const url  = document.getElementById('urlInput').value.trim();
-  const btn  = document.getElementById('dlBtn');
-  const feed = document.getElementById('dlFeedback');
-  if (!url) { gsap.from('#urlInput', { x: -6, duration: 0.3, ease: 'elastic.out(1,0.5)' }); return; }
-
-  btn.disabled = true;
-  btn.innerHTML = `<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle"></span>Queuing…`;
-  feed.innerHTML = '<span style="color:#60a5fa">⏳ Adding to queue…</span>';
-
-  const res = await api('/api/downloads', { method: 'POST', body: JSON.stringify({ url }) });
-  btn.disabled = false;
-  btn.innerHTML = `<svg style="display:inline;width:14px;height:14px;margin-right:6px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,19 5,12"/></svg>Download`;
-
-  if (!res) return;
-  const data = await res.json();
-
-  if (!res.ok) {
-    feed.innerHTML = `<span style="color:#f87171">✗ ${escHtml(data.error)}</span>`;
-    showToast(data.error, 'error');
-    return;
-  }
-
-  feed.innerHTML = `<span style="color:#34d399">✓ Download queued — it will appear below shortly</span>`;
-  document.getElementById('urlInput').value = '';
-  showToast('Download queued!', 'success');
-  loadRecent();
-  loadStats();
-  startPolling();
-  gsap.from('#recentContainer tr:first-child', { y: -10, opacity: 0, duration: 0.3, ease: 'power2.out', delay: 0.4 });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') startDownload(); });
-});
-
-// ═══════════════════════════════════════════════════════════════
-// Load lists
-// ═══════════════════════════════════════════════════════════════
-async function loadRecent() {
-  const res = await api('/api/downloads');
-  if (!res) return;
-  const data = await res.json();
-  renderTable(data.slice(0, 6), 'recentContainer');
-  updateStats(data);
-}
-
-async function loadHistory() {
-  document.getElementById('historyContainer').innerHTML = renderSkeletons(5);
-  const res = await api('/api/downloads');
-  if (!res) return;
-  const data = await res.json();
-  renderTable(data, 'historyContainer');
-}
-
-function updateStats(data) {
-  animateCount('st-total',  data.length);
-  animateCount('st-done',   data.filter(d => d.status === 'done').length);
-  animateCount('st-active', data.filter(d => d.status === 'downloading' || d.status === 'pending' || d.status === 'uploading').length);
-  animateCount('st-failed', data.filter(d => d.status === 'failed').length);
-  const active = data.filter(d => d.status === 'downloading' || d.status === 'pending' || d.status === 'uploading').length;
-  const badge = document.getElementById('pendingBadge');
-  if (active > 0) { badge.textContent = active; badge.style.display = 'inline'; }
-  else badge.style.display = 'none';
-}
-
-function renderSkeletons(n) {
-  return Array(n).fill(0).map(() => `
-    <tr style="border-top:1px solid var(--border-muted)">
-      <td style="padding:14px 12px"><div class="skel" style="height:14px;width:60%;margin-bottom:6px"></div><div class="skel" style="height:10px;width:40%"></div></td>
-      <td style="padding:14px 12px"><div class="skel" style="height:20px;width:70px;border-radius:99px"></div></td>
-      <td style="padding:14px 12px"><div class="skel" style="height:12px;width:40px"></div></td>
-      <td style="padding:14px 12px"><div class="skel" style="height:12px;width:70px"></div></td>
-      <td></td>
-    </tr>`).join('');
-}
-
-function renderTable(items, containerId) {
-  const container = document.getElementById(containerId);
-  if (!items.length) {
-    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No downloads yet</div><div class="empty-sub">Paste a URL above to get started</div></div>`;
-    return;
-  }
-  container.innerHTML = `
-    <div style="overflow-x:auto">
-    <table class="tbl">
-      <thead><tr>
-        <th style="min-width:240px">Title / URL</th>
-        <th>Status</th>
-        <th>Format</th>
-        <th>Date</th>
-        <th style="text-align:right">Actions</th>
-      </tr></thead>
-      <tbody>${items.map(renderRow).join('')}</tbody>
-    </table></div>`;
-}
-
-function renderRow(d) {
-  const statusHtml = {
-    done:        `<span class="badge badge-done"><span class="dot dot-done"></span>Done</span>`,
-    downloading: `<span class="badge badge-dl"><span class="dot dot-dl"></span>Downloading<div class="progress-wrap" style="width:60px;margin-left:4px"><div class="progress-bar"></div></div></span>`,
-    converting:  `<span class="badge" style="background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.25)"><span class="dot" style="background:#c084fc;animation:pulse 1s infinite"></span>Converting<div class="progress-wrap" style="width:50px;margin-left:4px"><div class="progress-bar" style="background:linear-gradient(90deg,#9333ea,#7c3aed)"></div></div></span>`,
-    uploading:   `<span class="badge" style="background:rgba(20,184,166,0.12);color:#2dd4bf;border:1px solid rgba(20,184,166,0.25)"><span class="dot" style="background:#2dd4bf;animation:pulse 1s infinite"></span>Uploading to cloud<div class="progress-wrap" style="width:50px;margin-left:4px"><div class="progress-bar" style="background:linear-gradient(90deg,#0d9488,#2dd4bf)"></div></div></span>`,
-    pending:     `<span class="badge badge-pending"><span class="dot dot-pending"></span>Pending</span>`,
-    failed:      `<span class="badge badge-failed" title="${escHtml(d.error||'')}"><span class="dot dot-failed"></span>Failed</span>`,
-  }[d.status] || `<span class="badge">${d.status}</span>`;
-
-  const date = new Date(d.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-
-  const actions = d.status === 'done' ? `
-    <button class="act-btn play" title="Play video" onclick="openPlayer('${d.id}','${escHtml((d.title||'').replace(/'/g,"\\'"))}','${d.format||''}')">
-      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5,3 19,12 5,21"/></svg>
-    </button>
-    <button class="act-btn save" title="Save to device" onclick="saveFile('${d.id}')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    </button>
-    <button class="act-btn del" title="Delete" onclick="deleteDownload('${d.id}')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4h6v2"/></svg>
-    </button>` :
-    `<button class="act-btn del" title="Delete" onclick="deleteDownload('${d.id}')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4h6v2"/></svg>
-    </button>`;
-
-  return `<tr>
-    <td>
-      <div style="font-size:0.85rem;font-weight:500;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.title ? escHtml(d.title) : '<span style="color:var(--subtle);font-style:italic">Processing…</span>'}</div>
-      <div style="font-size:0.75rem;color:var(--subtle);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">${escHtml(d.url)}</div>
-    </td>
-    <td>${statusHtml}</td>
-    <td><span style="font-size:0.75rem;color:var(--muted);font-weight:500;background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:5px">${(d.format||'—').toUpperCase()}</span></td>
-    <td style="font-size:0.78rem;color:var(--subtle);white-space:nowrap">${date}</td>
-    <td style="text-align:right;white-space:nowrap">${actions}</td>
-  </tr>`;
-}
-
-async function deleteDownload(id) {
-  const ok = await showConfirm({
-    title:   'Delete download?',
-    message: 'This will remove the record and delete the file from disk. This cannot be undone.',
-    okLabel: 'Delete',
-    okStyle: 'danger',
-  });
-  if (!ok) return;
-  await api(`/api/downloads/${id}`, { method: 'DELETE' });
-  showToast('Download deleted', 'success');
-  loadRecent();
-  if (document.getElementById('pageHistory').style.display !== 'none') loadHistory();
-}
-
-async function saveFile(id) {
-  showToast('Preparing file…', 'info');
-  const res = await api(`/api/downloads/${id}/file`);
-  if (!res || !res.ok) { showToast('File not found on disk', 'error'); return; }
-  const blob = await res.blob();
-  const cd   = res.headers.get('Content-Disposition') || '';
-  const match = cd.match(/filename="?([^"]+)"?/);
-  const filename = match ? match[1] : 'video.mp4';
-  const url = URL.createObjectURL(blob);
-  Object.assign(document.createElement('a'), { href: url, download: filename, style: 'display:none' })
-    .dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  URL.revokeObjectURL(url);
-  showToast('Saved to device!', 'success');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Video Player
-// ═══════════════════════════════════════════════════════════════
-async function openPlayer(id, title, format) {
-  activeVideoId = id;
-  const unsupported = ['mkv','avi','flv','wmv'];
-  const fmt = (format || '').toLowerCase();
-  const hint = document.getElementById('videoHint');
-  const player = document.getElementById('videoPlayer');
-
-  hint.style.color = 'var(--subtle)';
-  hint.innerHTML = 'Use the controls to play, pause, and seek';
-
-  if (unsupported.includes(fmt)) {
-    hint.innerHTML = `<span style="color:#fbbf24">⚠ ${fmt.toUpperCase()} may not play in all browsers — use Save to device instead.</span>`;
-  }
-
-  player.onerror = () => {
-    hint.innerHTML = `<span style="color:#f87171">⚠ Browser can't decode this format. Click <b>Save to device</b> to watch in VLC.</span>`;
-  };
-
-  document.getElementById('videoTitle').textContent = title || 'Video';
-  document.getElementById('videoMeta').textContent  = format ? `${format.toUpperCase()} · streaming from local server` : 'Streaming from local server';
-
-  const streamToken = await getToken();
-  player.src = `/api/downloads/${id}/file?token=${encodeURIComponent(streamToken)}`;
-  player.load();
-
-  const modal = document.getElementById('videoModal');
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closePlayer() {
-  const player = document.getElementById('videoPlayer');
-  player.pause(); player.src = '';
-  document.getElementById('videoModal').classList.remove('open');
-  document.body.style.overflow = '';
-  activeVideoId = null;
-}
-
-function handleModalClick(e) {
-  if (e.target === document.getElementById('videoModal')) closePlayer();
-}
-
-function saveCurrentFile() { if (activeVideoId) saveFile(activeVideoId); }
-
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && activeVideoId) closePlayer(); });
-
-// ═══════════════════════════════════════════════════════════════
-// Polling
-// ═══════════════════════════════════════════════════════════════
-function startPolling() {
-  if (pollTimer) return;
-  pollTimer = setInterval(async () => {
-    const res = await api('/api/downloads');
-    if (!res) return;
-    const data = await res.json();
-    const hasActive = data.some(d => ['pending','downloading','converting','uploading'].includes(d.status));
-    updateStats(data);
-    if (document.getElementById('pageDownloads').style.display !== 'none') loadRecent();
-    if (document.getElementById('pageHistory').style.display !== 'none') loadHistory();
-    if (!hasActive) { clearInterval(pollTimer); pollTimer = null; }
-  }, 3000);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Admin
-// ═══════════════════════════════════════════════════════════════
-async function loadAdmin() {
-  const [statsRes, usersRes] = await Promise.all([api('/api/admin/stats'), api('/api/admin/users')]);
-  if (statsRes?.ok) {
-    const s = await statsRes.json();
-    document.getElementById('adm-users').textContent = s.total_users;
-    document.getElementById('adm-total').textContent = s.total_downloads;
-    document.getElementById('adm-done').textContent  = s.by_status?.done   || 0;
-    document.getElementById('adm-fail').textContent  = s.by_status?.failed || 0;
-  }
-  if (usersRes?.ok) {
-    const users = await usersRes.json();
-    document.getElementById('adminUsers').innerHTML = users.length ? `
-      <table class="tbl">
-        <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th style="text-align:right">Actions</th></tr></thead>
-        <tbody>${users.map(u => `
-          <tr>
-            <td style="font-weight:600;font-size:0.85rem;color:var(--text)">${escHtml(u.username)}</td>
-            <td style="font-size:0.78rem;color:var(--muted)">${escHtml(u.email)}</td>
-            <td><span style="font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:5px;background:${u.role==='admin'?'rgba(124,58,237,0.15)':'rgba(59,130,246,0.12)'};color:${u.role==='admin'?'#a78bfa':'#60a5fa'}">${u.role}</span></td>
-            <td><span style="font-size:0.72px;font-weight:700;padding:2px 8px;border-radius:5px;background:${u.is_active?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.08)'};color:${u.is_active?'#34d399':'#f87171'};font-size:0.72rem">${u.is_active?'Active':'Disabled'}</span></td>
-            <td style="font-size:0.78rem;color:var(--subtle)">${new Date(u.created_at).toLocaleDateString('en-GB')}</td>
-            <td style="text-align:right">${u.id !== currentUser.id ? `
-              <button class="act-btn" title="Toggle role" onclick="toggleRole('${u.id}','${u.role}')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="17,1 21,5 17,9"/><path d="M3,11V9a4,4,0,0,1,4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21,13v2a4,4,0,0,1-4,4H3"/></svg>
-              </button>
-              <button class="act-btn ${u.is_active?'del':''}" title="${u.is_active?'Disable':'Enable'}" onclick="toggleActive('${u.id}',${u.is_active})">
-                ${u.is_active ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20,6 9,17 4,12"/></svg>'}
-              </button>` : '<span style="font-size:0.72rem;color:var(--subtle)">you</span>'}
-            </td>
-          </tr>`).join('')}
-        </tbody>
-      </table>` : `<div class="empty"><div class="empty-icon">👤</div><div class="empty-title">No users</div></div>`;
-  }
-}
-
-async function loadAdminDownloads() {
-  const res = await api('/api/admin/downloads');
-  if (!res?.ok) return;
-  const items = await res.json();
-  document.getElementById('adminAllDl').innerHTML = items.length ? `
-    <table class="tbl">
-      <thead><tr><th>User</th><th>Title / URL</th><th>Status</th><th>Date</th><th style="text-align:right">Actions</th></tr></thead>
-      <tbody>${items.map(d => `
-        <tr>
-          <td style="font-size:0.78rem;color:var(--muted)">${escHtml(d.username)}</td>
-          <td>
-            <div style="font-size:0.83rem;font-weight:500;color:var(--text);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.title ? escHtml(d.title) : '<span style="color:var(--subtle);font-style:italic">—</span>'}</div>
-            <div style="font-size:0.72rem;color:var(--subtle);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(d.url)}</div>
-          </td>
-          <td><span class="badge badge-${d.status==='done'?'done':d.status==='downloading'?'dl':d.status==='pending'?'pending':'failed'}">${d.status}</span></td>
-          <td style="font-size:0.78rem;color:var(--subtle)">${new Date(d.created_at).toLocaleDateString('en-GB')}</td>
-          <td style="text-align:right"><button class="act-btn del" onclick="adminDelDl('${d.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/></svg></button></td>
-        </tr>`).join('')}
-      </tbody>
-    </table>` : `<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No downloads found</div></div>`;
-}
-
-async function toggleRole(uid, current) {
-  const next = current === 'admin' ? 'user' : 'admin';
-  const ok = await showConfirm({
-    title:   `Change role to "${next}"?`,
-    message: next === 'admin'
-      ? 'This user will gain full admin access to all users and downloads.'
-      : 'This user will lose admin privileges and return to a regular account.',
-    okLabel: 'Change role',
-    okStyle: 'primary',
-  });
-  if (!ok) return;
-  await api(`/api/admin/users/${uid}/role`, { method:'PUT', body: JSON.stringify({ role: next }) });
-  showToast(`Role changed to ${next}`, 'success');
-  loadAdmin();
-}
-
-async function toggleActive(uid, current) {
-  const ok = await showConfirm({
-    title:   current ? 'Disable this account?' : 'Enable this account?',
-    message: current
-      ? 'The user will be immediately signed out and blocked from logging in.'
-      : 'The user will regain full access to their account.',
-    okLabel: current ? 'Disable' : 'Enable',
-    okStyle: current ? 'danger' : 'primary',
-  });
-  if (!ok) return;
-  await api(`/api/admin/users/${uid}/active`, { method:'PUT', body: JSON.stringify({ is_active: !current }) });
-  showToast(current ? 'Account disabled' : 'Account enabled', 'success');
-  loadAdmin();
-}
-
-async function adminDelDl(id) {
-  const ok = await showConfirm({
-    title:   'Delete download?',
-    message: 'This will permanently remove this download record from the system.',
-    okLabel: 'Delete',
-    okStyle: 'danger',
-  });
-  if (!ok) return;
-  await api(`/api/admin/downloads/${id}`, { method:'DELETE' });
-  showToast('Deleted', 'success');
-  loadAdmin(); loadAdminDownloads();
-}
-
-function switchAdminTab(tab) {
-  ['tabUsers','tabAllDl'].forEach(id => document.getElementById(id).classList.remove('active'));
-  document.getElementById('adminUsers').style.display  = tab === 'users' ? 'block' : 'none';
-  document.getElementById('adminAllDl').style.display  = tab === 'allDl' ? 'block' : 'none';
-  document.getElementById(tab === 'users' ? 'tabUsers' : 'tabAllDl').classList.add('active');
-  if (tab === 'allDl') loadAdminDownloads();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Toast
-// ═══════════════════════════════════════════════════════════════
-function showToast(msg, type = 'success') {
-  const wrap = document.getElementById('toastWrap');
-  const icons = { success: '✓', error: '✗', info: 'ℹ' };
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span style="font-weight:700;font-size:1rem">${icons[type]||'•'}</span><span style="flex:1">${escHtml(msg)}</span>`;
-  wrap.appendChild(toast);
-  gsap.fromTo(toast, { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.35, ease: 'power3.out' });
-  setTimeout(() => {
-    gsap.to(toast, { x: 40, opacity: 0, duration: 0.3, ease: 'power2.in', onComplete: () => toast.remove() });
-  }, 3200);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Utils
-// ═══════════════════════════════════════════════════════════════
-function escHtml(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Custom confirm modal (replaces browser confirm())
-// ═══════════════════════════════════════════════════════════════
-let _confirmResolve = null;
-
-function showConfirm({ title = 'Are you sure?', message = '', okLabel = 'Confirm', okStyle = 'danger' } = {}) {
-  return new Promise((resolve) => {
-    _confirmResolve = resolve;
-
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmMsg').textContent   = message;
-
-    const okBtn   = document.getElementById('confirmOkBtn');
-    const iconWrap = document.getElementById('confirmIconWrap');
-    const icon     = document.getElementById('confirmIcon');
-
-    okBtn.textContent = okLabel;
-
-    if (okStyle === 'danger') {
-      okBtn.style.cssText   = 'padding:9px 18px;border-radius:9px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.15);color:#f87171;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s';
-      iconWrap.style.cssText = 'width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.1);color:#f87171';
-      icon.style.stroke      = '#f87171';
-      okBtn.onmouseover = () => { okBtn.style.background='#ef4444'; okBtn.style.color='#fff'; };
-      okBtn.onmouseout  = () => { okBtn.style.background='rgba(239,68,68,0.15)'; okBtn.style.color='#f87171'; };
-    } else {
-      okBtn.style.cssText   = 'padding:9px 18px;border-radius:9px;border:none;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s';
-      iconWrap.style.cssText = 'width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(124,58,237,0.15);color:#a78bfa';
-      icon.style.stroke      = '#a78bfa';
-    }
-
-    const overlay = document.getElementById('confirmOverlay');
-    const box     = document.getElementById('confirmBox');
-    overlay.style.pointerEvents = 'all';
-    overlay.style.background    = 'rgba(0,0,0,0.75)';
-    overlay.style.backdropFilter = 'blur(6px)';
-    box.style.transform = 'scale(1) translateY(0)';
-    box.style.opacity   = '1';
-    document.body.style.overflow = 'hidden';
-  });
-}
-
-function resolveConfirm(result) {
-  const overlay = document.getElementById('confirmOverlay');
-  const box     = document.getElementById('confirmBox');
-  box.style.transform = 'scale(0.93) translateY(8px)';
-  box.style.opacity   = '0';
-  setTimeout(() => {
-    overlay.style.pointerEvents  = 'none';
-    overlay.style.background     = 'rgba(0,0,0,0)';
-    overlay.style.backdropFilter = 'blur(0px)';
-    document.body.style.overflow = '';
-  }, 250);
-  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
-}
-
-// Close on backdrop click
-document.getElementById('confirmOverlay').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('confirmOverlay')) resolveConfirm(false);
-});
-
-// Close on Escape
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && _confirmResolve) resolveConfirm(false);
-});
-
-// ── Spin keyframe for loading button ──
-const style = document.createElement('style');
-style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
-document.head.appendChild(style);
-
-// ── Clerk bootstrap ──────────────────────────────────────────────────────────
-// v5: window.Clerk is already an instance (key passed via data-clerk-publishable-key on the script tag)
-(async () => {
-  await window.Clerk.load();
-  window.__clerk = window.Clerk;
-  if (!window.Clerk.user) {
-    window.location.href = '/login';
-    return;
-  }
-  await init();
-})();
-</script>
-</body>
+      <!-- /main -->
+    </div>
+    <!-- /app -->
+
+    <script src="/clerk.browser.js" data-clerk-publishable-key="pk_test_YWRqdXN0ZWQtZXdlLTEuY2xlcmsuYWNjb3VudHMuZGV2JA" crossorigin="anonymous"></script>
+    <script src="/js/dashboard.js"></script>
+  </body>
 </html>

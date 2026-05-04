@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="page-auth">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,39 +7,7 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <style>
-    body { background: #080810; }
-    .orb { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; }
-    .gradient-text { background:linear-gradient(135deg,#fff 0%,#a78bfa 60%,#818cf8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .cl-rootBox { width:100% !important; }
-    .cl-card { background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.08) !important; box-shadow: 0 24px 48px rgba(0,0,0,0.4) !important; border-radius: 20px !important; }
-    .cl-headerTitle { color: #ffffff !important; }
-    .cl-headerSubtitle, .cl-footerActionText, .cl-formFieldLabel { color: #9ca3af !important; }
-    .cl-formFieldInput { background: rgba(0,0,0,0.35) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #e2e2e9 !important; border-radius: 10px !important; }
-    .cl-formFieldInput:focus { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.15) !important; outline: none !important; }
-    .cl-formButtonPrimary { background: linear-gradient(135deg,#7c3aed,#4f46e5) !important; border-radius: 10px !important; font-weight: 600 !important; box-shadow: 0 8px 24px rgba(124,58,237,0.3) !important; }
-    .cl-footerActionLink, .cl-identityPreviewEditButton { color: #a78bfa !important; }
-    .cl-dividerLine { background: rgba(255,255,255,0.08) !important; }
-    .cl-dividerText { color: #6b7280 !important; }
-    .cl-socialButtonsBlockButton { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #e2e2e9 !important; border-radius: 10px !important; }
-    .cl-socialButtonsBlockButton:hover { background: rgba(255,255,255,0.08) !important; }
-    .cl-internal-b3fm6y { color: #6b7280 !important; }
-    .spinner { width:36px;height:36px;border:3px solid rgba(124,58,237,0.2);border-top-color:#7c3aed;border-radius:50%;animation:spin 0.8s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .form-input { width:100%; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.1); color:#e2e2e9; border-radius:10px; padding:11px 14px; font-size:14px; outline:none; transition:border-color 0.2s,box-shadow 0.2s; }
-    .form-input:focus { border-color:#7c3aed; box-shadow:0 0 0 3px rgba(124,58,237,0.15); }
-    .form-input::placeholder { color:#4b5563; }
-    .btn-primary { width:100%; background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 8px 24px rgba(124,58,237,0.3); transition:opacity 0.2s,transform 0.1s; }
-    .btn-primary:hover { opacity:0.9; }
-    .btn-primary:active { transform:scale(0.99); }
-    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
-    .field-error { color:#f87171; font-size:12px; margin-top:4px; display:none; }
-    .divider { display:flex; align-items:center; gap:12px; margin:20px 0; }
-    .divider hr { flex:1; border:none; border-top:1px solid rgba(255,255,255,0.08); }
-    .divider span { color:#4b5563; font-size:12px; }
-    .btn-social { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e2e2e9; border-radius:10px; padding:11px; font-size:14px; font-weight:500; cursor:pointer; transition:background 0.2s; }
-    .btn-social:hover { background:rgba(255,255,255,0.09); }
-  </style>
+  <link rel="stylesheet" href="/css/global.css"/>
 </head>
 <body class="font-sans text-white antialiased min-h-screen flex" style="font-family:'Inter',sans-serif">
 
@@ -146,101 +114,6 @@
   </div>
 
   <script src="/clerk.browser.js" data-clerk-publishable-key="pk_test_YWRqdXN0ZWQtZXdlLTEuY2xlcmsuYWNjb3VudHMuZGV2JA"></script>
-  <script>
-    function show(id) {
-      ['view-loading','view-form','view-verify'].forEach(v => {
-        document.getElementById(v).style.display = (v === id) ? 'block' : 'none';
-      });
-    }
-    function setError(elId, msg) {
-      const el = document.getElementById(elId);
-      el.textContent = msg;
-      el.style.display = msg ? 'block' : 'none';
-    }
-
-    let signUpAttempt = null;
-
-    async function signUpWith(strategy) {
-      try {
-        await window.Clerk.client.signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: window.location.origin + '/sso-callback',
-          redirectUrlComplete: '/dashboard',
-        });
-      } catch (err) {
-        setError('global-error', err.errors?.[0]?.message || 'OAuth sign-up failed.');
-      }
-    }
-
-    (async () => {
-      await window.Clerk.load();
-      if (window.Clerk.user) { window.location.href = '/dashboard'; return; }
-      show('view-form');
-    })();
-
-    // Step 1 — create account
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setError('global-error', '');
-      const email    = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const password2 = document.getElementById('password2').value;
-      const btn      = document.getElementById('submit-btn');
-
-      if (!email || !password) { setError('global-error', 'Please fill in all fields.'); return; }
-      if (password !== password2) { setError('global-error', 'Passwords do not match.'); return; }
-      if (password.length < 8)   { setError('global-error', 'Password must be at least 8 characters.'); return; }
-
-      btn.disabled = true;
-      btn.textContent = 'Creating account…';
-
-      try {
-        signUpAttempt = await window.Clerk.client.signUp.create({
-          emailAddress: email,
-          password,
-        });
-        // Trigger email verification
-        await signUpAttempt.prepareEmailAddressVerification({ strategy: 'email_code' });
-        document.getElementById('verify-email').textContent = email;
-        show('view-verify');
-      } catch (err) {
-        console.error('[Clerk] sign-up error:', err);
-        const msg = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || err.message || 'Sign-up failed.';
-        setError('global-error', msg);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Create account';
-      }
-    });
-
-    // Step 2 — verify email code
-    document.getElementById('verify-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setError('verify-error', '');
-      const code = document.getElementById('code').value.trim();
-      const btn  = document.getElementById('verify-btn');
-      if (!code) { setError('verify-error', 'Please enter the code.'); return; }
-
-      btn.disabled = true;
-      btn.textContent = 'Verifying…';
-
-      try {
-        const result = await signUpAttempt.attemptEmailAddressVerification({ code });
-        if (result.status === 'complete') {
-          await window.Clerk.setActive({ session: result.createdSessionId });
-          window.location.href = '/dashboard';
-        } else {
-          setError('verify-error', 'Verification incomplete. Please try again.');
-        }
-      } catch (err) {
-        console.error('[Clerk] verify error:', err);
-        const msg = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || err.message || 'Invalid code.';
-        setError('verify-error', msg);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Verify & continue';
-      }
-    });
-  </script>
+  <script src="/js/register.js"></script>
 </body>
 </html>
